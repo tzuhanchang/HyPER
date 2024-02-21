@@ -78,4 +78,4 @@ techniques, `SPANet` and `Topograph`.
 <img src="results_table.png" alt="graph" width="800"/>
 
 A highlight result is that `HyPER` reconstructs a higher number of $t \bar{t}$ events correctly across the entire invariant mass phase-space of the $t \bar{t}$ system.
-<img src="ttbar_eff.png" alt="graph" width="400"/>
+<img src="examples/ttbar_allhad/ttbar_eff.png" alt="ttbar_efficiency" width="400"/>
