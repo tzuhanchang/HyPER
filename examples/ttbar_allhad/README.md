@@ -33,7 +33,7 @@ nodes.
 Any short-lived particle (SM of BSM) which decays into $N$ final-state jets can
 be reconstructed using a hyperedge of cardinality $N$.
 
-![image of graph](graph.png)
+<img src="graph.png" alt="graph" width="400"/>
   
 ### Reconstruction Strategy
 
@@ -82,4 +82,4 @@ All results are found in our paper. Two results are highlighted here.
 This table shows our results compared to two other ML-based reconstruction
 techniques, `SPANet` and `Topograph`.
 
-![table1](top_efficiencies.png)
+<img src="top_efficiencies.png" alt="graph" width="400"/>
