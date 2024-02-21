@@ -7,7 +7,6 @@ Graph-Hypergraph Representation Learning"_ .
 
 
 ### Motivation 
-
 Reconstructing short-lived particles from their hadronic decay products in
 collider experiments is challenging. 
 The corrct combination of final-state objects must be associated with each short-lived particle, and additional final-state
@@ -18,7 +17,6 @@ This work demonstrates the utility of this method by studying the all-hadronic
 decay of top-antitop quark pairs.
 
 ### Graph-Hypergraph Representation
-
 `HyPER` represents event final states as digraphs, with all final-states
 represented as nodes, and additional kinematic information embedded in edge and
 global graph features.
@@ -32,16 +30,15 @@ be reconstructed using a hyperedge of cardinality $N$.
 <img src="graph.png" alt="graph" width="400"/>
   
 ### Reconstruction Strategy
-
 `HyPER` first uses a message-passing neural network to build a latent
 representation of the graph, updating the node, edge and global feature vectors
 sequentially.
 
-#### W Boson Reconstruction
+**W Boson Reconstruction:**:
 The updates edge attributes are converted to soft probabilities representing the
 likelihood of this edge connecting two true $W$ boson decay products.
 
-#### Top Quark Reconstruction
+**Top Quark Reconstruction:**
 A set of 3-hyperedges is built by considering every combinationof three nodes in
 the graph.
 `HyPER` constructs embeddings for each hyperedge. 
