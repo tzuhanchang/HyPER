@@ -5,10 +5,6 @@
 This study is publised in _"Reconstruction of Short-Lived Particles using
 Graph-Hypergraph Representation Learning"_ .
 
-The study uses `HyPER`:  _Hypergraphs for Particle Event Reconstructyion_, a
-general GNN framework designed for reconstructing sets of short-lived particles
-from any complex all-hadronic final states. The source code for `HyPER` is found
-here...
 
 ### Motivation 
 
@@ -82,4 +78,7 @@ All results are found in our paper. Two results are highlighted here.
 This table shows our results compared to two other ML-based reconstruction
 techniques, `SPANet` and `Topograph`.
 
-<img src="top_efficiencies.png" alt="graph" width="400"/>
+<img src="results_table.png" alt="graph" width="400"/>
+
+
+<img src="ttbar_eff.png" alt="graph" width="400"/>
