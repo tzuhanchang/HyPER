@@ -78,7 +78,7 @@ All results are found in our paper. Two results are highlighted here.
 This table shows our results compared to two other ML-based reconstruction
 techniques, `SPANet` and `Topograph`.
 
-<img src="results_table.png" alt="graph" width="400"/>
+<img src="results_table.png" alt="graph" width="800"/>
 
-
+A highlight result is that `HyPER` reconstructs a higher number of $t \bar{t}$ events correctly across the entire invariant mass phase-space of the $t \bar{t}$ system.
 <img src="ttbar_eff.png" alt="graph" width="400"/>
