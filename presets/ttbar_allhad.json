@@ -1,0 +1,39 @@
+{
+    "train_data":                   "./datasets/ttbar_train",
+    "valid_data":                   "./datasets/ttbar_val",
+
+    "objects":                      "['jet']",
+    "node_features":                "['pt','eta','phi','e','bTag']",
+    "node_scales":                  "[lambda x: np.log(x), lambda x: x/np.pi, lambda x: x/np.pi, lambda x: np.log(x), lambda x: x]",
+    "global_features":              "['njet','nbTagged']",
+    "global_scales":                "[lambda x: x/6, lambda x: x/2]",
+    "truth_ID":                     "jet_truthmatch",
+    "truth_patterns":               "[[1,2,3],[4,5,6],[2,3],[5,6]]",
+
+    "all_matched":                  true,
+
+    "message_passing_recurrent":    3,
+    "message_feats":                64,
+    "contraction_feats":              128,
+    "hyperedge_order":              3,
+    "dropout":                      0.01,
+
+    "optimizer":                    "Adam",
+    "learning_rate":                0.0003,
+    "criterion_edge":               "BCE",
+    "criterion_hyperedge":          "BCE",
+    "alpha":                        0.8,
+    "loss_reduction":               "mean",
+    "loss_scale":                   1.0,
+
+    "epochs":                       500,
+    "batch_size":                   4096,
+    "train_val_split":              0.9,
+
+    "device":                       "cpu",
+    "num_device":                   1,
+    "num_dataloader_workers":       16,
+    "in_memory_dataset":            true,
+
+    "savedir":                      "./HyPER_logs"
+}

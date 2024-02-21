@@ -1,0 +1,24 @@
+# About code owners
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Code owners recieve review requests when parts of code they "own" change.
+
+*    @tzuhanchang
+
+*.py @tzuhanchang
+
+/HyPER/data/ @tzuhanchang
+
+/HyPER/graphs/ @tzuhanchang
+
+/HyPER/models/ @tzuhanchang
+
+/HyPER/training/ @tzuhanchang
+
+/HyPER/utils/ @tzuhanchang
+
+/HyPER/evaluation/ @tzuhanchang
+
+/presets/ @tzuhanchang
+
+/examples/ @tzuhanchang
