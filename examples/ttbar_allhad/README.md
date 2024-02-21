@@ -5,7 +5,6 @@
 This study is publised in _"Reconstruction of Short-Lived Particles using
 Graph-Hypergraph Representation Learning"_ .
 
-
 ### Motivation 
 Reconstructing short-lived particles from their hadronic decay products in
 collider experiments is challenging. 
@@ -27,55 +26,33 @@ nodes.
 Any short-lived particle (SM of BSM) which decays into $N$ final-state jets can
 be reconstructed using a hyperedge of cardinality $N$.
 
-<img src="graph.png" alt="graph" width="400"/>
-  
+<img src=".figures/digraph.png" alt="graph" width="49%"/>
+<img src=".figures/hypergraph.png" alt="graph" width="49%"/>
+
 ### Reconstruction Strategy
-`HyPER` first uses a message-passing neural network to build a latent
-representation of the graph, updating the node, edge and global feature vectors
-sequentially.
+We provide a reconstruction script for the all hadronic $t\bar{t}$ events: [`reconstruct_ttbar_allhad.py`](reconstruct_ttbar_allhad.py).
+Providing the configurations (`-c`), pre-built graph dataset (`--test`), and the log directory of the trained model (`--log_dir`), run
+```
+python reconstruct_ttbar_allhad.py -c presets/ttbar_allhad.json --log_dir HyPER_log/version_0 --test ttbar_test -o ./reconstructed_test.pkl
+```
+This will use provided model to evaluate on the graph dataset, and save the results to a `.pkl` file. The reconstruction strategy used in the script can be summarised as following.
 
-**W Boson Reconstruction:**
-The updates edge attributes are converted to soft probabilities representing the
-likelihood of this edge connecting two true $W$ boson decay products.
-
-**Top Quark Reconstruction:**
-A set of 3-hyperedges is built by considering every combination of three nodes in
-the graph.
+#### Top Quark Reconstruction
+A set of 3-hyperedges is built by considering every combination of three nodes in the graph.
 `HyPER` constructs embeddings for each hyperedge. 
-These embeddings are processsed by a hyperedge layer which returns a soft
-probability that each hyperedge represents a true top quark. 
-The hyperedge layer utilises a novel attention-inspired mechanism to weight the
-relevant importance of the hyperedge features.
+These embeddings a processsed by a hyperedge layer which returns a soft probability that each hyperedge represents a true top quark.
+The constituents and probability of each hyperedge is saved as `HyPER_HE_IDX` and `HyPER_HE_RAW`, repectively.
+We select two independent, highest scoring hyperedges as two top quark candidates.
 
+#### W Boson Reconstruction
+The updates edge attributes from message-passing are converted to soft probabilities representing the likelihood of this edge connecting two true $W$ boson decay products.
+Similar to hyperedges, the edge outputs are saved as `HyPER_GE_IDX` and `HyPER_GE_RAW`.
+The $W$ boson candidate is selected as the highest scoring graph edge, who is a subset of a selected hyperedge.
 
 
 ### Dataset
 
 Training, validation and testing of the model is carried out on MC-simulated
-proton-proton collision events at $\sqrt{s} = 13 \hspace{3pt} \mathrm{TeV}$. 
+proton-proton collision events at $\sqrt{s} = 13$ TeV. 
 The simulated samples are generated using the `MadGraph`, `Pythia` and `Delphes`
 software tools. The dataset and its partitions are available [here](https://zenodo.org/records/10653837).
-
-### Other  
-
-HyPER provides four main outputs: `HyPER_HE_IDX`, `HyPER_HE_RAW`, `HyPER_GE_IDX`
-and `HyPER_GE_RAW`.
-
-| Variables | Description |
-| ------------- | ------------- |
-| `HyPER_HE_IDX` | Indices of the nodes enclosed by a hyperedge  |
-| `HyPER_HE_RAW` | Soft probability of a hyperedge |
-| `HyPER_GE_IDX` | Indices of the nodes connected by a graph edge |
-| `HyPER_GE_RAW` | Soft probability of a graph edge |
-
-
-### Results
-
-All results are found in our paper. Two results are highlighted here.
-This table shows our results compared to two other ML-based reconstruction
-techniques, `SPANet` and `Topograph`.
-
-<img src="results_table.png" alt="graph" width="800"/>
-
-A highlight result is that `HyPER` reconstructs a higher number of $t \bar{t}$ events correctly across the entire invariant mass phase-space of the $t \bar{t}$ system.
-<img src="tt_efficiency.png" alt="ttbar_efficiency" width="400"/>
