@@ -26,8 +26,8 @@ nodes.
 Any short-lived particle (SM of BSM) which decays into $N$ final-state jets can
 be reconstructed using a hyperedge of cardinality $N$.
 
-<img src=".figures/digraph.png" alt="graph" width="49%"/>
-<img src=".figures/hypergraph.png" alt="graph" width="49%"/>
+<img src=".figures/digraph.png" alt="graph" width="40%"/>
+<img src=".figures/hypergraph.png" alt="graph" width="40%"/>
 
 ### Reconstruction Strategy
 We provide a reconstruction script for the all hadronic $t\bar{t}$ events: [`reconstruct_ttbar_allhad.py`](reconstruct_ttbar_allhad.py).
