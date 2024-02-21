@@ -39,10 +39,10 @@ The updates edge attributes are converted to soft probabilities representing the
 likelihood of this edge connecting two true $W$ boson decay products.
 
 **Top Quark Reconstruction:**
-A set of 3-hyperedges is built by considering every combinationof three nodes in
+A set of 3-hyperedges is built by considering every combination of three nodes in
 the graph.
 `HyPER` constructs embeddings for each hyperedge. 
-These embeddings a processsed by a hyperedge layer which returns a soft
+These embeddings are processsed by a hyperedge layer which returns a soft
 probability that each hyperedge represents a true top quark. 
 The hyperedge layer utilises a novel attention-inspired mechanism to weight the
 relevant importance of the hyperedge features.
@@ -52,7 +52,7 @@ relevant importance of the hyperedge features.
 ### Dataset
 
 Training, validation and testing of the model is carried out on MC-simulated
-proton-proton collision events at $\sqrt{s} = 13 \mathrm{TeV}$. 
+proton-proton collision events at $\sqrt{s} = 13 \: \mathrm{TeV}$. 
 The simulated samples are generated using the `MadGraph`, `Pythia` and `Delphes`
 software tools. The dataset and its partitions are available [here](https://zenodo.org/records/10653837).
 
