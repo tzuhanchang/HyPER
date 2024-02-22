@@ -15,6 +15,8 @@ which final-state objects belong to which short-lived particles.
 This work demonstrates the utility of this method by studying the all-hadronic
 decay of top-antitop quark pairs.
 
+<img align="right" src=".figures/repersentation.png" alt="graph" width="45%"/>
+
 ### Graph-Hypergraph Representation
 `HyPER` represents event final states as digraphs, with all final-states
 represented as nodes, and additional kinematic information embedded in edge and
@@ -25,9 +27,6 @@ edge between two nodes; for top quarks, this is a hypderedge between three
 nodes.
 Any short-lived particle (SM of BSM) which decays into $N$ final-state jets can
 be reconstructed using a hyperedge of cardinality $N$.
-
-<img src=".figures/digraph.png" alt="graph" width="49%"/>
-<img src=".figures/hypergraph.png" alt="graph" width="49%"/>
 
 ### Reconstruction Strategy
 We provide a reconstruction script for the all hadronic $t\bar{t}$ events: [`reconstruct_ttbar_allhad.py`](reconstruct_ttbar_allhad.py).
