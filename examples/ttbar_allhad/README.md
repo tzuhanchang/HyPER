@@ -15,7 +15,7 @@ which final-state objects belong to which short-lived particles.
 This work demonstrates the utility of this method by studying the all-hadronic
 decay of top-antitop quark pairs.
 
-<img align="right" src=".figures/repersentation.png" alt="graph" width="45%"/>
+<img align="right" src=".figures/representation.png" alt="graph" width="45%"/>
 
 ### Graph-Hypergraph Representation
 `HyPER` represents event final states as digraphs, with all final-states
