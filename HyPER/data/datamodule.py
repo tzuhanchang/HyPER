@@ -16,12 +16,12 @@ class HyPERDataModule(LightningDataModule):
         db_config (str): dataset configuration file.
         train_set (str): training dataset path.
         val_set (optional, str): validation dataset path. (default :obj:`None`)
-        batch_size (optional, int): number of samples per batch to load. (default :obj:`int`=128)
-        percent_valid_samples (optional, float): fraction of dataset to use as validation samples. (default :obj:`float`=0.005)
-        mask (optional, Sequence[int]): indices to mask over. (default :obj:`None`)
-        num_workers (optional, int): loading data into memory with number of cpu workers. (default :obj:`int`=0)
-        pin_memory (optional, bool): use memory pinning. (default :obj:`bool`=False)
-        persistent_workers (optional, bool): use the pervious workers. (default :obj:`bool`=True)
+        batch_size (optional, int): number of samples per batch to load. (default :obj:`128`)
+        percent_valid_samples (optional, float): fraction of dataset to use as validation samples. (default :obj:`0.005`)
+        all_matched (optional, bool): only select fully matched events. (default :obj:`False`)
+        num_workers (optional, int): loading data into memory with number of cpu workers. (default :obj:`0`)
+        pin_memory (optional, bool): use memory pinning. (default :obj:`False`)
+        persistent_workers (optional, bool): use the pervious workers. (default :obj:`True`)
     """
     def __init__(
         self,

@@ -45,7 +45,9 @@ class GraphDataset(torch.utils.data.Dataset):
 
     Args:
         path (str): path to the dataset.
-        configs (str): a `yaml` file saves dataset configurations.
+        configs (str): a :obj:`yaml` file saves dataset configurations.
+        use_index_select (optional, bool): use :obj:`IndexSelect` provided in the :obj:`.h5`
+            file to select out graphs (default: :obj:`False`).
     """
     def __init__(self, path: str, configs: str, use_index_select: Optional[bool] = False):
         super(GraphDataset).__init__()
@@ -182,12 +184,6 @@ class GraphDataset(torch.utils.data.Dataset):
     ) -> Tensor:
         r"""Get edge labels.
 
-        Note:
-            `identifiers` contains unique integer values corresponding to the edges one want to label.
-            It is defined according to vertex ids (`VertexID`) using:
-                    :math:`2^u + 2^v`
-            where u and v are labels of the edge's end points.
-
         Args:
             edge_index (torch.tensor): edge indices.
             VertexID (torch.tensor): node types.
@@ -206,12 +202,6 @@ class GraphDataset(torch.utils.data.Dataset):
         VertexID: Tensor
     ) -> Tensor:
         r"""Get hyperedge labels.
-
-        Note:
-            `identifiers` contains unique integer values corresponding to the edges one want to label.
-            It is defined according to vertex ids (`VertexID`) using:
-                    :math:`\sum_i 2^i \quad \forall i\in\{0,1,\dots, N\}`
-            where N is the hyperedge order.
 
         Args:
             VertexID (torch.tensor): node types.
