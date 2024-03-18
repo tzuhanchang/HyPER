@@ -47,20 +47,20 @@ def Train(settings: Settings, ckpt_path: Optional[str] = None):
         ckpt_path (str, optional): restore the full training from the given path. (default: :obj:`str`=None)
     """
     datamodule = HyPERDataModule(
-        train_dir = settings.train_data,
-        val_dir = settings.valid_data,
+        db_config = settings.db_config,
+        train_set = settings.train_data,
+        val_set = settings.valid_data,
         batch_size = settings.batch_size,
         percent_valid_samples = 1 - settings.train_val_split,
-        in_memory = settings.in_memory_dataset,
         num_workers = settings.num_dataloader_workers,
         pin_memory = True if settings.device == "gpu" else False,
         all_matched = settings.all_matched
     )
 
     model = HyPERModel(
-        node_in_channels = len(settings.node_features)+1,
-        edge_in_channels = 4,
-        global_in_channels = len(settings.global_features),
+        node_in_channels = datamodule.node_in_channels,
+        edge_in_channels = datamodule.edge_in_channels,
+        global_in_channels = datamodule.global_in_channels,
         message_feats = settings.message_feats,
         dropout = settings.dropout,
         message_passing_recurrent = settings.message_passing_recurrent,

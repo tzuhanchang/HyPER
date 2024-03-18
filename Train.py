@@ -23,7 +23,6 @@ if __name__ == '__main__':
         settings.load(args.config)
     settings.show()
 
-    if settings.in_memory_dataset is False:
-        torch.multiprocessing.set_sharing_strategy('file_system')
+    torch.multiprocessing.set_start_method('spawn')
 
     Train(settings=settings, ckpt_path=args.resume)
