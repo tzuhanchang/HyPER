@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, "../../")
+
 import argparse
 import numpy as np
 import pandas as pd
@@ -12,8 +15,11 @@ from HyPER.evaluation import Evaluate
 def argparser():
     parser = argparse.ArgumentParser(description='Reconstruct all hadronic ttbar events from HyPER outputs.')
 
-    parser.add_argument('-o', '--output', type=str, required=True, help='Output .pkl file.')
-    parser.add_argument('-c', '--config', type=str, required=True, help='Configuration/settings file.')
+    parser.add_argument('-o', '--output', type=str, required=True,  help='Output .pkl file.')
+    parser.add_argument('-c', '--config', type=str, required=False, help='Configuration/settings file.',
+                        default='ttbar_allhad.json')
+    parser.add_argument('-d', '--dbconf', type=str, required=False, help='Dataset configuration file.',
+                        default='db.yaml')
     parser.add_argument('--log_dir', type=str, required=True, help='Model log directory.')
     parser.add_argument('--test', type=str, required=True, help='Path to the testing dataset.')
 
@@ -98,9 +104,17 @@ def Reconstruct_ttbar(HyPER_outputs: str | pd.DataFrame):
 if __name__ == "__main__":
     args = argparser()
 
-    dataset = GraphDataset(root=args.test)
+    dataset = GraphDataset(
+        path=args.test,
+        configs=args.dbconf
+    )
 
-    evaluated = Evaluate(log_dir=args.log_dir, dataset=dataset, option_file=args.config)
+    evaluated = Evaluate(
+        log_dir=args.log_dir,
+        dataset=dataset,
+        option_file=args.config
+    )
+
     results = Reconstruct_ttbar(evaluated)
 
     results.to_pickle(args.output)
