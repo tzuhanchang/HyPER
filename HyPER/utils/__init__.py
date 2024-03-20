@@ -1,7 +1,7 @@
-from .h5toROOT import h5toROOT
 from .settings import Settings
+from .connectivity import getUndirectedEdges
 
 __all__ = [
-    'h5toROOT',
-    'Settings'
+    'Settings',
+    'getUndirectedEdges'
 ]

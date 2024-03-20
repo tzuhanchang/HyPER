@@ -2,7 +2,6 @@ from types import ModuleType
 from importlib import import_module
 
 import HyPER.data
-import HyPER.graphs
 import HyPER.models
 import HyPER.utils
 import HyPER.evaluation
@@ -31,7 +30,6 @@ class LazyLoader(ModuleType):
 
 
 data = LazyLoader('data', globals(), 'HyPER.data')
-graphs = LazyLoader('graphs', globals(), 'HyPER.graphs')
 models = LazyLoader('models', globals(), 'HyPER.models')
 utils = LazyLoader('utils', globals(), 'HyPER.utils')
 evaluation = LazyLoader('evaluation', globals(), 'HyPER.evaluation')

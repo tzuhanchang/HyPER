@@ -7,20 +7,7 @@
 
 ## Quick Start
 
-Basic graph building and training parameters are defined in a `.json` configuration file, including graph topologies, loss function and optimiser. A set of preset configurations can be found in [presets](./presets).
-
-
-### Graph building
-> We are aiming to remove graph building precedure in a future release, directly computing graphs using [torch_hep](https://github.com/tzuhanchang/pytorch_hep) library while training.
-
-Graph building is performed with [torch_hep](https://github.com/tzuhanchang/pytorch_hep) and [PyG](https://github.com/pyg-team/pytorch_geometric) library. The geometry of the source is defined in the configuration file, such as nodes (physical objects), edges (connections) and globals (event-wise information). For each source graph, a target graph is constructed for training use, it contains targeting hyperedges and graph edges with binary labels 1 and 0.
-
-Prior to the training (or testing), [PyG](https://github.com/pyg-team/pytorch_geometric) graph datasets corresponding to training and validation (or testing) sets must be build:
-```
-python BuildGraphs.py -f ttbar_train.root -t Delphes -c ./presets/ttbar_allhad.json -o ./datasets/ttbar_train
-```
-This command build a graph dataset `ttbar_train` using the [TTree](https://root.cern.ch/doc/master/classTTree.html) `Delphes` in a [ROOT](https://root.cern) file: `ttbar_train.root`. Graphs in the constructed dataset have the structure defined in the configuration file `ttbar_allhad.json`.
-The function `BuildGraph` uses [ATLAS variable naming scheme](http://opendata.atlas.cern/books/current/openatlasdatatools/_book/variable_names.html) by default.
+> We have removed graph building precedure following [#4](https://github.com/tzuhanchang/HyPER/pull/4). `GraphDataset` now loads flat data from a `HDF5` file and computes graph structure on the fly. We are no longer recommand and provide support to [release v0.1](https://github.com/tzuhanchang/HyPER/releases/tag/v0.1).
 
 
 ### Network training
@@ -28,7 +15,7 @@ HyPER model is built upon [pytorch_lightning](https://lightning.ai/docs/pytorch/
 
 To train HyPER:
 ```
-python Train.py -c ./presets/ttbar_allhad.json
+python Train.py -c ./examples/ttbar_allhad/ttbar_allhad.json
 ```
 Make sure appropriate parameters are defined in your configuration file. If argument `-c` is not passed, the programme uses a set of default parameters and a `UserWarning` will be raised. 
 
@@ -39,9 +26,17 @@ To evaluate trained HyPER model on a dataset:
 from HyPER.data import GraphDataset
 from HyPER.evaluation import Evaluate
 
-test_dataset = GraphDataset(root="./datasets/ttbar_test")
+test_dataset = GraphDataset(
+    path="./datasets/ttbar_test.h5",
+    configs="./examples/ttbar_allhad/db.yaml"
+)
 
-results = Evaluate(log_dir="./HyPER_logs/version_0", dataset=test_dataset, option_file="./presets/ttbar_allhad.json")
+results = Evaluate(
+    log_dir="./HyPER_logs/version_0",
+    dataset=test_dataset,
+    option_file="./examples/ttbar_allhad/ttbar_allhad.json",
+    save_to="output.pkl"
+)
 ```
 `results` is a [pandas.DataFrame](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html), in which, four output variables are saved:
 

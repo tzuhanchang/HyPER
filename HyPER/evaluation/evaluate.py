@@ -13,8 +13,7 @@ from itertools import permutations, combinations
 from typing import Optional
 
 from HyPER.data import GraphDataset
-from HyPER.graphs import getUndirectedEdges
-from HyPER.utils import Settings
+from HyPER.utils import Settings, getUndirectedEdges
 
 
 def Evaluate(log_dir: str, dataset: GraphDataset, option_file: Optional[str] = None, save_to: Optional[str] = None) -> pd.DataFrame:
