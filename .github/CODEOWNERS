@@ -9,8 +9,6 @@
 
 /HyPER/data/ @tzuhanchang
 
-/HyPER/graphs/ @tzuhanchang
-
 /HyPER/models/ @tzuhanchang
 
 /HyPER/training/ @tzuhanchang
@@ -18,7 +16,5 @@
 /HyPER/utils/ @tzuhanchang
 
 /HyPER/evaluation/ @tzuhanchang
-
-/presets/ @tzuhanchang
 
 /examples/ @tzuhanchang
