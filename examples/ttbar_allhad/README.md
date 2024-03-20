@@ -30,9 +30,9 @@ be reconstructed using a hyperedge of cardinality $N$.
 
 ### Reconstruction Strategy
 We provide a reconstruction script for the all hadronic $t\bar{t}$ events: [`reconstruct_ttbar_allhad.py`](reconstruct_ttbar_allhad.py).
-Providing the configurations (`-c`), pre-built graph dataset (`--test`), and the log directory of the trained model (`--log_dir`), run
+Providing the path to the testing dataset (`--test`), and the log directory of the trained model (`--log_dir`), run
 ```
-python reconstruct_ttbar_allhad.py -c presets/ttbar_allhad.json --log_dir HyPER_log/version_0 --test ttbar_test -o ./reconstructed_test.pkl
+python reconstruct_ttbar_allhad.py --log_dir HyPER_log/version_0 --test ttbar_test.h5 -o ./output.pkl
 ```
 This will use provided model to evaluate on the graph dataset, and save the results to a `.pkl` file. The reconstruction strategy used in the script can be summarised as following.
 
