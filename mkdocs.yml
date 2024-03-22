@@ -1,0 +1,22 @@
+site_name: HyPER
+
+repo_name: tzuhanchang/HyPER
+repo_url: https://github.com/tzuhanchang/HyPER
+
+theme:
+  name: readthedocs
+  highlightjs: true
+
+plugins:
+  - search
+  - mkdocstrings
+
+markdown_extensions:
+  - admonition
+
+nav:
+  - Home: index.md
+  - Setup:
+    - Installation: source/installation.md
+  - Tutorials:
+    - Build Your Own Dataset: source/tutorials/dataset.md
