@@ -1,5 +1,10 @@
 # HyPER
 
+[![Documentation Status](https://readthedocs.org/projects/hyper-hep/badge/?version=latest)](https://hyper-hep.readthedocs.io/en/latest/?badge=latest)
+[![arXiv](https://img.shields.io/badge/arXiv-2402.10149-b31b1b.svg)](https://arxiv.org/abs/2402.10149)
+
+**[Documentation](https://hyper-hep.readthedocs.io)**
+
 **HyPER** (_Hypergraph for Particle Event Reconstruction_) is Graph Neural Network (GNN) utilising **_blended graph-hypergraph representation learning_** to reconstruct short-lived particles from their complex final states.
 
 - [Quick Start](#quick-start)
