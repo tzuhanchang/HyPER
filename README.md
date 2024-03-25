@@ -20,9 +20,10 @@ HyPER model is built upon [pytorch_lightning](https://lightning.ai/docs/pytorch/
 
 To train HyPER:
 ```
-python Train.py -c ./examples/ttbar_allhad/ttbar_allhad.json
+python -m HyPER.train --config-name=default [options]
 ```
-Make sure appropriate parameters are defined in your configuration file. If argument `-c` is not passed, the programme uses a set of default parameters and a `UserWarning` will be raised. 
+HyPER uses [hydra](https://hydra.cc/) for configuring run ([#10](https://github.com/tzuhanchang/HyPER/pull/10)). You can overwrite any option using, for example, `all_matched=False` at the end, it overwrites the `all_matched` option provided in your configuration file.
+> Configuration files must be placed in the `configs` folder. Provide the file name without `.yaml` extension to `--config-name`.
 
 
 ### Evaluation
