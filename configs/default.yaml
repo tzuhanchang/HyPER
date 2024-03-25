@@ -1,0 +1,30 @@
+train_set:   null
+val_set:     null
+db_config:   "db.yaml"
+all_matched: True
+
+continue_from_ckpt: null
+
+train_val_split: 0.9
+hyperedge_order: 3
+
+num_message_layers: 3
+message_feats:      64
+hyperedge_feats:    128
+dropout:            0.01
+
+optimizer:           "Adam"
+learning_rate:       0.0003
+criterion_edge:      "BCE"
+criterion_hyperedge: "BCE"
+loss_reduction:      "mean"
+alpha:               0.8
+
+epochs:       500
+batch_size:   4096
+
+device:      "gpu"
+num_device:  1
+num_workers: 12
+
+savedir: "HyPER_logs"
