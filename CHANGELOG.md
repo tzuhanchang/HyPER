@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
  - Integrate [`hydra`](https://hydra.cc/) configuration framework ([#10](https://github.com/tzuhanchang/HyPER/pull/10))
+ - Add documentation on dataset building ([#8](https://github.com/tzuhanchang/HyPER/pull/8))
+ - Add `readthedocs` support ([#8](https://github.com/tzuhanchang/HyPER/pull/8))
+ - Add `CHANGELOG.md` ([#5](https://github.com/tzuhanchang/HyPER/pull/5))
  - Add dataset configuration example [`db.yaml`](examples/ttbar_allhad/db.yaml) ([#4](https://github.com/tzuhanchang/HyPER/pull/4))
 
 ### Changed
