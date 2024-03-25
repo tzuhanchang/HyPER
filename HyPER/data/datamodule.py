@@ -14,8 +14,9 @@ class HyPERDataModule(LightningDataModule):
 
     Args:
         db_config (str): dataset configuration file.
-        train_set (str): training dataset path.
+        train_set (optional, str): training dataset path.(default :obj:`None`)
         val_set (optional, str): validation dataset path. (default :obj:`None`)
+        predict_set (optional, str): predict dataset path. (default :obj:`None`)
         batch_size (optional, int): number of samples per batch to load. (default :obj:`128`)
         percent_valid_samples (optional, float): fraction of dataset to use as validation samples. (default :obj:`0.005`)
         all_matched (optional, bool): only select fully matched events. (default :obj:`False`)
@@ -28,6 +29,7 @@ class HyPERDataModule(LightningDataModule):
         db_config: str,
         train_set: Optional[str] = None,
         val_set: Optional[str] = None,
+        predict_set: Optional[str] = None,
         batch_size: Optional[int] = 128,
         percent_valid_samples: Optional[float] = 0.05,
         all_matched: Optional[bool] = False,
@@ -40,6 +42,7 @@ class HyPERDataModule(LightningDataModule):
         self.db_config   = db_config
         self.train_set   = train_set
         self.val_set     = val_set
+        self.predict_set = predict_set
         self.all_matched = all_matched
         self.batch_size  = batch_size
         self.num_workers = num_workers
@@ -55,26 +58,39 @@ class HyPERDataModule(LightningDataModule):
             self.global_in_channels  = len(list(cf['INPUTS']['global'].keys()))
 
     def setup(self, stage: str):
-        if self.val_set is None or self.val_set == "" or self.train_set == self.val_set:
-            print(f"Creating validation set using {round(self.percent_valid_samples*100,2)}% of the file.")
+        self.train_data = None
+        self.val_data   = None
+        if self.train_set is not None:
+            if self.val_set is None or self.val_set == "" or self.train_set == self.val_set:
+                print(f"Creating validation set using {round(self.percent_valid_samples*100,2)}% of the file.")
 
+                if self.all_matched:
+                    data = GraphDataset(path=self.train_set, configs=self.db_config, use_index_select=True)
+                else:
+                    data = GraphDataset(path=self.train_set, configs=self.db_config)
+
+                self.train_data, self.val_data = random_split(data, [1-self.percent_valid_samples, self.percent_valid_samples])
+
+            else:
+                if self.all_matched is True:
+                    train_data = GraphDataset(path=self.train_set, configs=self.db_config, use_index_select=True)
+                    val_data = GraphDataset(path=self.val_set, configs=self.db_config, use_index_select=True)
+                else:
+                    train_data = GraphDataset(path=self.train_set, configs=self.db_config)
+                    val_data   = GraphDataset(path=self.val_set, configs=self.db_config)
+
+                self.train_data = train_data
+                self.val_data   = val_data
+
+        self.predict_data = None
+        if self.predict_set is not None:
             if self.all_matched:
-                data = GraphDataset(path=self.train_set, configs=self.db_config, use_index_select=True)
+                self.predict_data = GraphDataset(path=self.predict_set, configs=self.db_config, use_index_select=True)
             else:
-                data = GraphDataset(path=self.train_set, configs=self.db_config)
+                self.predict_data = GraphDataset(path=self.predict_set, configs=self.db_config)
 
-            self.train_data, self.val_data = random_split(data, [1-self.percent_valid_samples, self.percent_valid_samples])
-
-        else:
-            if self.all_matched is True:
-                train_data = GraphDataset(path=self.train_set, configs=self.db_config, use_index_select=True)
-                val_data = GraphDataset(path=self.val_set, configs=self.db_config, use_index_select=True)
-            else:
-                train_data = GraphDataset(path=self.train_set, configs=self.db_config)
-                val_data   = GraphDataset(path=self.val_set, configs=self.db_config)
-
-            self.train_data = train_data
-            self.val_data   = val_data
+        if self.train_data is None and self.val_data is None and self.predict_data is None:
+            raise ValueError("No datasets have been provided. Abort!")
 
         try:
             from rich import get_console
@@ -82,11 +98,15 @@ class HyPERDataModule(LightningDataModule):
 
             console = get_console()
             table = Table(title="Dataset Status",header_style="orange1")
-            table.add_column("", justify="left")
-            table.add_column("", justify="left")
+            table.add_column("Name", justify="left")
+            table.add_column("Value", justify="left")
             table.add_row("All matched only", str(self.all_matched))
-            table.add_row("Training samples", str(len(self.train_data)))
-            table.add_row("Validation samples", str(len(self.val_data)))
+            if self.train_data is not None:
+                table.add_row("Training samples", str(len(self.train_data)))
+            if self.val_data is not None:
+                table.add_row("Validation samples", str(len(self.val_data)))
+            if self.predict_data is not None:
+                table.add_row("Prediction samples", str(len(self.predict_data)))
             table.add_row("N node attributes", str(self.node_in_channels))
             table.add_row("N edge attributes", str(self.edge_in_channels))
             table.add_row("N glob attributes", str(self.global_in_channels))
@@ -101,4 +121,8 @@ class HyPERDataModule(LightningDataModule):
 
     def val_dataloader(self):
         return DataLoader(self.val_data, batch_size=self.batch_size, follow_batch=['edge_attr_s'],
+                          pin_memory=self.pin_memory, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+
+    def predict_dataloader(self):
+        return DataLoader(self.predict_data, batch_size=self.batch_size, follow_batch=['edge_attr_s'],
                           pin_memory=self.pin_memory, num_workers=self.num_workers, persistent_workers=self.persistent_workers)

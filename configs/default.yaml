@@ -21,8 +21,14 @@ epochs:       500
 batch_size:   4096
 
 device:       "gpu"
-num_device:   1
+num_devices:   1
 num_workers:  12
 
 savedir: "HyPER_logs"
 continue_from_ckpt: null
+
+predict_set:    null
+predict_with:   "cpu"
+predict_model:  null
+predict_output: null
+topology: ttbar_allhad

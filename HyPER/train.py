@@ -83,7 +83,7 @@ def Train(cfg : DictConfig) -> None:
 
     trainer = L.Trainer(
         accelerator = cfg['device'],
-        devices = cfg['num_device'],
+        devices = cfg['num_devices'],
         max_epochs = cfg['epochs'],
         callbacks = callbacks,
         logger = TensorBoardLogger(save_dir=cfg['savedir'], name="", log_graph=True)
