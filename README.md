@@ -29,22 +29,9 @@ HyPER uses [hydra](https://hydra.cc/) for configuring run ([#10](https://github.
 ### Evaluation
 To evaluate trained HyPER model on a dataset:
 ```
-from HyPER.data import GraphDataset
-from HyPER.evaluation import Evaluate
-
-test_dataset = GraphDataset(
-    path="./datasets/ttbar_test.h5",
-    configs="./examples/ttbar_allhad/db.yaml"
-)
-
-results = Evaluate(
-    log_dir="./HyPER_logs/version_0",
-    dataset=test_dataset,
-    option_file="./examples/ttbar_allhad/ttbar_allhad.json",
-    save_to="output.pkl"
-)
+python -m HyPER.predict --config-name=default [options]
 ```
-`results` is a [pandas.DataFrame](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html), in which, four output variables are saved:
+Four output variables are saved:
 
 | Variables | Description |
 | ------------- | ------------- |
@@ -53,7 +40,7 @@ results = Evaluate(
 | `HyPER_GE_IDX` | Indices of the nodes connected by a graph edge |
 | `HyPER_GE_RAW` | Soft probability of a graph edge |
 
-Based on these RAW outputs, events can then be reconstructed using users desired methods. We provide a example code for the all-hadronic reconstruction in [examples/ttbar_allhad](examples/ttbar_allhad).
+Based on these RAW outputs, events can then be reconstructed by stating the correct `topology` in the configuration file. We currently have limited event topologies available in HyPER, see [`HyPER/topology`](https://github.com/tzuhanchang/HyPER/tree/main/HyPER/topology). If you wish additional ones to be added, you can create a issue [here](https://github.com/tzuhanchang/HyPER/issues).
 
 
 ## Enviroment
