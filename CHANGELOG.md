@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## \[1.0.0\] - 2024-MM-DD
 
 ### Added
+ - Integrate [`hydra`](https://hydra.cc/) configuration framework ([#10](https://github.com/tzuhanchang/HyPER/pull/10))
  - Add documentation on dataset building ([#8](https://github.com/tzuhanchang/HyPER/pull/8))
  - Add `readthedocs` support ([#8](https://github.com/tzuhanchang/HyPER/pull/8))
  - Add `CHANGELOG.md` ([#5](https://github.com/tzuhanchang/HyPER/pull/5))
@@ -21,6 +22,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 ### Removed
+ - Removed legacy configuration class `HyPER.utils.Settings` ([#10](https://github.com/tzuhanchang/HyPER/pull/10))
+ - Removed legacy training executable `Train.py` ([#10](https://github.com/tzuhanchang/HyPER/pull/10))
  - Removed graph building precedure: `BuildGraphs` ([#4](https://github.com/tzuhanchang/HyPER/pull/4))
  - Removed unused legacy functions ([#4](https://github.com/tzuhanchang/HyPER/pull/4))
  - Removed `presets`, moved `ttbar_allhad.json` to [`examples/ttbar_allhad`](examples/ttbar_allhad) ([#4](https://github.com/tzuhanchang/HyPER/pull/4))

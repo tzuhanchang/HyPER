@@ -26,3 +26,4 @@ dependencies:
     - pylorentz
     - torch-hep==0.0.4
     - "dask[complete]"
+    - hydra-core
