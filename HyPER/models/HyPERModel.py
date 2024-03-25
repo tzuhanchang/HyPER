@@ -1,5 +1,8 @@
+import torch
+
 from torch.nn import BCELoss, Sigmoid
 from torch.optim import Adam
+from torch_geometric.utils import unbatch, degree
 from pytorch_lightning import LightningModule
 from HyPER.models import MPNNs, HyperedgeModel, HyperedgeLoss, EdgeLoss, CombinedLoss
 from HyPER.evaluation import Accuracy
@@ -82,22 +85,21 @@ class HyPERModel(LightningModule):
             message_feats = self.hparams.contraction_feats, dropout = self.hparams.dropout
         )
 
-    def forward(self, x, edge_index, edge_attr, u, batch):
+    def forward(self, data):
         # Message Passing Step
         for i in range(self.hparams.message_passing_recurrent):
             if i == 0:
-                x_new, edge_attr_new, u_new = self.__getattribute__('MessagePassing' + str(i))(
-                    x, edge_index, edge_attr, u, batch
+                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
+                    data.x_s, data.edge_index, data.edge_attr_s, data.u_s, data.batch
                 )
             else:
-                x_new, edge_attr_new, u_new = self.__getattribute__('MessagePassing' + str(i))(
-                    x_new, edge_index, edge_attr_new, u_new, batch
+                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
+                    x_prime, data.edge_index, edge_attr_prime, u_prime, data.batch
                 )
 
         # Hyperedge Finding Step
-        x_new, batch_new = self.Hyperedge(x_new, u_new, batch, self.hparams.hyperedge_order)
-
-        return x_new, batch_new, edge_attr_new
+        x_hat, batch_hyperedge  = self.Hyperedge(x_prime, u_prime, data.batch, self.hparams.hyperedge_order)
+        return x_hat, batch_hyperedge, edge_attr_prime
 
     def configure_optimizers(self):
         if str(self.hparams.optimizer).lower() == 'adam':
@@ -110,19 +112,7 @@ class HyPERModel(LightningModule):
         return optimizer
 
     def training_step(self, train_batch, batch_idx):
-        # Message Passing Step
-        for i in range(self.hparams.message_passing_recurrent):
-            if i == 0:
-                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
-                    train_batch.x_s, train_batch.edge_index, train_batch.edge_attr_s, train_batch.u_s, train_batch.batch
-                )
-            else:
-                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
-                    x_prime, train_batch.edge_index, edge_attr_prime, u_prime, train_batch.batch
-                )
-
-        # Hyperedge Finding Step
-        x_hat, batch_hyperedge  = self.Hyperedge(x_prime, u_prime, train_batch.batch, self.hparams.hyperedge_order)
+        x_hat, batch_hyperedge, edge_attr_prime = self.forward(train_batch)
 
         # Train Loss Calculation
         if str(self.hparams.criterion_edge).lower() == 'bce':
@@ -151,19 +141,7 @@ class HyPERModel(LightningModule):
         return loss
 
     def validation_step(self, val_batch, batch_idx):
-        # Message Passing Step
-        for i in range(self.hparams.message_passing_recurrent):
-            if i == 0:
-                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
-                    val_batch.x_s, val_batch.edge_index, val_batch.edge_attr_s, val_batch.u_s, val_batch.batch
-                )
-            else:
-                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
-                    x_prime, val_batch.edge_index, edge_attr_prime, u_prime, val_batch.batch
-                )
-
-        # Hyperedge Finding Step
-        x_hat, batch_hyperedge = self.Hyperedge(x_prime, u_prime, val_batch.batch, self.hparams.hyperedge_order)
+        x_hat, batch_hyperedge, edge_attr_prime = self.forward(val_batch)
 
         # Validation Loss Calculation
         if str(self.hparams.criterion_edge).lower() == 'bce':
@@ -195,3 +173,14 @@ class HyPERModel(LightningModule):
         self.log('fuzzy_accuracy/validation_accuracy_edge', accuracy_edge(edge_attr_prime.flatten(), val_batch.edge_attr_t.float().flatten()),
                  batch_size=len(val_batch), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         self.log('fuzzy_accuracy/validation_accuracy_hyperedge', accuracy_hyperedge, batch_size=len(val_batch), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        x_hat, batch_hyperedge, edge_attr_prime = self.forward(batch)
+
+        # Unbatch results
+        x_out         = unbatch(x_hat, batch_hyperedge.type(torch.int64), 0)
+        edge_attr_out = unbatch(edge_attr_prime, batch.edge_attr_s_batch, 0)
+        N_nodes       = degree(batch.batch).cpu().flatten().tolist()
+        encodings     = unbatch(batch.x_s[:,-1].reshape(-1,1),batch.batch, 0)
+
+        return x_out, edge_attr_out, N_nodes, encodings
