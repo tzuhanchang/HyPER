@@ -29,7 +29,7 @@ Any short-lived particle (SM of BSM) which decays into $N$ final-state jets can
 be reconstructed using a hyperedge of cardinality $N$.
 
 ### Reconstruction Strategy
-We provide a reconstruction script for the all hadronic $t\bar{t}$ events: [`HyPER/topology/ttbar.py`](HyPER/topology/ttbar.py), which is used when user request `topology=ttbar_allhad` in the configuration file:
+We provide a reconstruction script for the all hadronic $t\bar{t}$ events: `HyPER/topology/ttbar.py`, which is used when user request `topology=ttbar_allhad` in the configuration file:
 ```
 python -m HyPER.predict --config-name=default topology=ttbar_allhad [options]
 ```
