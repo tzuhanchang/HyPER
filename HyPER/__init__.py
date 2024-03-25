@@ -5,7 +5,7 @@ import HyPER.data
 import HyPER.models
 import HyPER.utils
 import HyPER.evaluation
-
+import HyPER.topology
 
 # python/util/lazy_loader.py
 class LazyLoader(ModuleType):
@@ -33,6 +33,7 @@ data = LazyLoader('data', globals(), 'HyPER.data')
 models = LazyLoader('models', globals(), 'HyPER.models')
 utils = LazyLoader('utils', globals(), 'HyPER.utils')
 evaluation = LazyLoader('evaluation', globals(), 'HyPER.evaluation')
+topology = LazyLoader('topology', globals(), 'HyPER.topology')
 
 __version__ = 'v1'
 
