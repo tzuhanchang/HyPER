@@ -22,6 +22,7 @@ class HyPERDataModule(LightningDataModule):
         max_n_events (optional, int): maximum number of events used in training. (default :obj:`-1`)
         percent_valid_samples (optional, float): fraction of dataset to use as validation samples. (default :obj:`0.005`)
         all_matched (optional, bool): only select fully matched events. (default :obj:`False`)
+        drop_last (optional, bool): drop the last incompleted batch. (default :obj:`False`)
         num_workers (optional, int): loading data into memory with number of cpu workers. (default :obj:`0`)
         pin_memory (optional, bool): use memory pinning. (default :obj:`False`)
         persistent_workers (optional, bool): use the pervious workers. (default :obj:`True`)
@@ -36,6 +37,7 @@ class HyPERDataModule(LightningDataModule):
         max_n_events: Optional[int] = -1,
         percent_valid_samples: Optional[float] = 0.05,
         all_matched: Optional[bool] = False,
+        drop_last: Optional[bool] = False,
         num_workers: Optional[int] = 0,
         pin_memory: Optional[bool] = True,
         persistent_workers: Optional[bool] = True
@@ -50,6 +52,7 @@ class HyPERDataModule(LightningDataModule):
         self.batch_size  = batch_size
         self.num_workers = num_workers
         self.pin_memory  = pin_memory
+        self.drop_last   = drop_last
         self.max_n_events = max_n_events
         self.persistent_workers    = persistent_workers
         self.percent_valid_samples = percent_valid_samples
@@ -143,6 +146,7 @@ class HyPERDataModule(LightningDataModule):
             pin_memory=self.pin_memory,
             num_workers=self.num_workers,
             persistent_workers=self.persistent_workers,
+            drop_last=self.drop_last,
             sampler=EventSampler(self.index_range) if self.index_range is not None else None
         )
 
@@ -153,7 +157,8 @@ class HyPERDataModule(LightningDataModule):
             follow_batch=['edge_attr_s'],
             pin_memory=self.pin_memory,
             num_workers=self.num_workers,
-            persistent_workers=self.persistent_workers
+            persistent_workers=self.persistent_workers,
+            drop_last=self.drop_last,
         )
 
     def predict_dataloader(self):
