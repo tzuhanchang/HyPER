@@ -41,7 +41,8 @@ def Train(cfg : DictConfig) -> None:
         percent_valid_samples = 1 - float(cfg['train_val_split']),
         num_workers = cfg['num_workers'],
         pin_memory = True if cfg['device'] == "gpu" else False,
-        all_matched = cfg['all_matched']
+        all_matched = cfg['all_matched'],
+        drop_last = cfg['drop_last']
     )
 
     model = HyPERModel(

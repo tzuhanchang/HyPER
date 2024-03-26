@@ -4,6 +4,7 @@ db_config:        "db.yaml"
 train_val_split:  0.9
 all_matched:      True
 max_n_events:     -1
+drop_last:        True
 
 num_message_layers:   3
 hyperedge_order:      3
