@@ -72,6 +72,8 @@ def CombinedLoss(loss_hyperedge: Tensor, loss_edge: Tensor, alpha: Optional[floa
         rd = torch.max
     elif reduction == 'min':
         rd = torch.min
+    elif reduction == 'sum':
+        rd = torch.sum
     # ------- custom reduction func -------
     # elif
     # -------------------------------------
