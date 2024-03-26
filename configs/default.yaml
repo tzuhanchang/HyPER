@@ -3,6 +3,7 @@ val_set:          null
 db_config:        "db.yaml"
 train_val_split:  0.9
 all_matched:      True
+max_n_events:     -1
 
 num_message_layers:   3
 hyperedge_order:      3
