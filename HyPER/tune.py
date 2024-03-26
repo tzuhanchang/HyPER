@@ -1,4 +1,5 @@
 import hydra
+import torch
 import optuna
 
 import pytorch_lightning as L
@@ -24,9 +25,9 @@ def objective(trial: optuna.trial.Trial) -> float:
         option_file (str, optional): `.json` file, stores training related parameters. (default: :obj:`str`=None)
     """
     # We optimise these hyperparameters:
-    num_message_layers = trial.suggest_int("num_message_layers", 3, 8, step=1)
-    message_feats      = trial.suggest_int("message_feats", 32, 256, step=16)
-    hyperedge_feats    = trial.suggest_int("hyperedge_feats", 32, 256, step=16)
+    num_message_layers = trial.suggest_int("num_message_layers", 3, 8)
+    message_feats      = trial.suggest_int("message_feats", 32, 256)
+    hyperedge_feats    = trial.suggest_int("hyperedge_feats", 32, 256)
     dropout            = trial.suggest_float("dropout", 0.001, 0.1)
     learning_rate      = trial.suggest_float("learning_rate", 1e-5, 1e-1, log=True)
     alpha              = trial.suggest_float("alpha", 0.0, 1.0)
@@ -66,7 +67,7 @@ def objective(trial: optuna.trial.Trial) -> float:
             max_epochs = NUM_EPOCHS,
             enable_checkpointing=False,
             logger = TensorBoardLogger(save_dir="tuner_output", name="", log_graph=True),
-            callbacks=[PyTorchLightningPruningCallback(trial, monitor="fuzzy_accuracy/validation_accuracy")]
+            callbacks=[PyTorchLightningPruningCallback(trial, monitor="fuzzy_accuracy/validation_accuracy_hyperedge")]
         )
 
         trainer.fit(model, datamodule=datamodule)
@@ -77,7 +78,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         trial.set_user_attr("error_message", str(e))
         raise optuna.TrialPruned()
 
-    return trainer.callback_metrics["fuzzy_accuracy/validation_accuracy"].item()
+    return trainer.callback_metrics["fuzzy_accuracy/validation_accuracy_hyperedge"].item()
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="default")
@@ -85,14 +86,12 @@ def Tune(cfg : DictConfig) -> None:
     global CONFIGS
     CONFIGS = cfg
 
-    pruner = optuna.pruners.MedianPruner()
-
     study = optuna.create_study(
         storage        = "sqlite:///db.sqlite3",
         study_name     = "HyPER-tune",
         direction      = "maximize",
         load_if_exists = True,
-        pruner         = pruner
+        pruner         = optuna.pruners.MedianPruner()
     )
 
     study.optimize(objective, n_trials = NUM_TRIALS)
@@ -110,4 +109,6 @@ def Tune(cfg : DictConfig) -> None:
 
 
 if __name__ == "__main__":
+    torch.multiprocessing.set_start_method('spawn')
+
     Tune()
