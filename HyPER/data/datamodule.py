@@ -121,6 +121,7 @@ class HyPERDataModule(LightningDataModule):
             table.add_column("Name", justify="left")
             table.add_column("Value", justify="left")
             table.add_row("All matched only", str(self.all_matched))
+            table.add_row("Drop last batch", str(self.drop_last))
             if self.train_data is not None:
                 if self.index_range is not None:
                     table.add_row("Training samples", str(len(self.index_range)))
