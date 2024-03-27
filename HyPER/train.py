@@ -37,10 +37,12 @@ def Train(cfg : DictConfig) -> None:
         train_set = cfg['train_set'],
         val_set = cfg['val_set'],
         batch_size = cfg['batch_size'],
+        max_n_events = cfg['max_n_events'],
         percent_valid_samples = 1 - float(cfg['train_val_split']),
         num_workers = cfg['num_workers'],
         pin_memory = True if cfg['device'] == "gpu" else False,
-        all_matched = cfg['all_matched']
+        all_matched = cfg['all_matched'],
+        drop_last = cfg['drop_last']
     )
 
     model = HyPERModel(
