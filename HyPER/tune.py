@@ -37,10 +37,12 @@ def objective(trial: optuna.trial.Trial) -> float:
         train_set = CONFIGS['train_set'],
         val_set = CONFIGS['val_set'],
         batch_size = CONFIGS['batch_size'],
+        max_n_events = CONFIGS['max_n_events'],
         percent_valid_samples = 1 - float(CONFIGS['train_val_split']),
         num_workers = CONFIGS['num_workers'],
         pin_memory = True if CONFIGS['device'] == "gpu" else False,
-        all_matched = CONFIGS['all_matched']
+        all_matched = CONFIGS['all_matched'],
+        drop_last = CONFIGS['drop_last']
     )
 
     try:
