@@ -25,18 +25,17 @@ def objective(trial: optuna.trial.Trial) -> float:
         option_file (str, optional): `.json` file, stores training related parameters. (default: :obj:`str`=None)
     """
     # We optimise these hyperparameters:
-    num_message_layers = trial.suggest_int("num_message_layers", 3, 8)
-    message_feats      = trial.suggest_int("message_feats", 32, 256)
-    hyperedge_feats    = trial.suggest_int("hyperedge_feats", 32, 256)
-    dropout            = trial.suggest_float("dropout", 0.001, 0.1)
-    learning_rate      = trial.suggest_float("learning_rate", 1e-5, 1e-1, log=True)
-    alpha              = trial.suggest_float("alpha", 0.0, 1.0)
+    dropout       = trial.suggest_float("dropout", 0.001, 0.5)
+    weight_decay  = trial.suggest_float("weight_decay", 0.0001, 0.9)
+    learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-1, log=True)
+    alpha         = trial.suggest_float("alpha", 0.0, 1.0)
+    batch_size    = trial.suggest_int("batch_size", 128, 20000)
 
     datamodule = HyPERDataModule(
         db_config = CONFIGS['db_config'],
         train_set = CONFIGS['train_set'],
         val_set = CONFIGS['val_set'],
-        batch_size = CONFIGS['batch_size'],
+        batch_size = batch_size,
         max_n_events = CONFIGS['max_n_events'],
         percent_valid_samples = 1 - float(CONFIGS['train_val_split']),
         num_workers = CONFIGS['num_workers'],
@@ -50,16 +49,17 @@ def objective(trial: optuna.trial.Trial) -> float:
             node_in_channels = datamodule.node_in_channels,
             edge_in_channels = datamodule.edge_in_channels,
             global_in_channels = datamodule.global_in_channels,
-            message_feats = message_feats,
+            message_feats = CONFIGS['message_feats'],
             dropout = dropout,
-            message_passing_recurrent = num_message_layers,
-            contraction_feats = hyperedge_feats,
+            message_passing_recurrent = CONFIGS['num_message_layers'],
+            contraction_feats = CONFIGS['hyperedge_feats'],
             hyperedge_order = CONFIGS['hyperedge_order'],
             criterion_edge = CONFIGS['criterion_edge'],
             criterion_hyperedge = CONFIGS['criterion_hyperedge'],
             optimizer = CONFIGS['optimizer'],
             lr = learning_rate,
             alpha = alpha,
+            weight_decay = weight_decay,
             reduction = CONFIGS['loss_reduction']
         )
 
