@@ -82,22 +82,22 @@ class HyPERDataModule(LightningDataModule):
 
             else:
                 if self.all_matched is True:
-                    data = GraphDataset(path=self.train_set, configs=self.db_config, use_index_select=True)
+                    train_data = GraphDataset(path=self.train_set, configs=self.db_config, use_index_select=True)
                     val_data = GraphDataset(path=self.val_set, configs=self.db_config, use_index_select=True)
                 else:
-                    data = GraphDataset(path=self.train_set, configs=self.db_config)
+                    train_data = GraphDataset(path=self.train_set, configs=self.db_config)
                     val_data = GraphDataset(path=self.val_set, configs=self.db_config)
 
-                self.train_data = data
+                self.train_data = train_data
                 self.val_data   = val_data
 
             # Limit training dataset size to self.max_n_events
             if self.max_n_events == -1:
                 pass
-            elif self.max_n_events > len(data):
+            elif self.max_n_events > len(self.train_data):
                 warnings.warn("`max_n_events` large than the dataset, use all events in the dataset.")
                 pass
-            elif self.max_n_events > 0 and self.max_n_events <= len(data):
+            elif self.max_n_events > 0 and self.max_n_events <= len(self.train_data):
                 self.index_range = list(range(self.max_n_events))
             else:
                 pass
