@@ -13,6 +13,21 @@ plugins:
 
 markdown_extensions:
   - admonition
+  - def_list
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
   - Home: index.md
@@ -20,3 +35,7 @@ nav:
     - Installation: source/installation.md
   - Tutorials:
     - Build Your Own Dataset: source/tutorials/dataset.md
+    - Network Training: source/tutorials/train.md
+    - Reconstructing: source/tutorials/evaluate.md
+  - Topologies: 
+    - Available Topologies: source/topologies.md
