@@ -3,17 +3,16 @@ channels:
   - pytorch
   - nvidia
 dependencies:
-  - pytorch
+  - python=3.10
+  - pytorch 
   - torchvision
   - torchaudio
-  - pytorch-cuda=11.8
   - pip:
     - torch_geometric
-    - https://data.pyg.org/whl/torch-2.0.0%2Bcu118/pyg_lib-0.2.0%2Bpt20cu118-cp311-cp311-linux_x86_64.whl
-    - https://data.pyg.org/whl/torch-2.0.0%2Bcu118/torch_cluster-1.6.1%2Bpt20cu118-cp311-cp311-linux_x86_64.whl
-    - https://data.pyg.org/whl/torch-2.0.0%2Bcu118/torch_scatter-2.1.1%2Bpt20cu118-cp311-cp311-linux_x86_64.whl
-    - https://data.pyg.org/whl/torch-2.0.0%2Bcu118/torch_sparse-0.6.17%2Bpt20cu118-cp311-cp311-linux_x86_64.whl
-    - https://data.pyg.org/whl/torch-2.0.0%2Bcu118/torch_spline_conv-1.2.2%2Bpt20cu118-cp311-cp311-linux_x86_64.whl
+    - torch_scatter
+    - torch_sparse
+    - torch_cluster
+    - torch_spline_conv
     - numpy
     - pandas
     - lightning
@@ -25,5 +24,5 @@ dependencies:
     - h5py
     - pylorentz
     - torch-hep==0.0.4
-    - "dask[complete]"
     - hydra-core
+    - rich
