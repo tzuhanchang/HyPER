@@ -85,7 +85,23 @@ class HyPERModel(LightningModule):
             message_feats = self.hparams.contraction_feats, dropout = self.hparams.dropout
         )
 
-    def forward(self, data):
+    def forward(self, x_s, edge_index, edge_attr_s, u_s, batch, edge_index_h, edge_index_h_batch):
+        # Message Passing Step
+        for i in range(self.hparams.message_passing_recurrent):
+            if i == 0:
+                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
+                    x_s, edge_index, edge_attr_s, u_s, batch
+                )
+            else:
+                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
+                    x_prime, edge_index, edge_attr_prime, u_prime, batch
+                )
+
+        # Hyperedge Finding Step
+        x_hat, batch_hyperedge  = self.Hyperedge(x_prime, u_prime, batch, edge_index_h, edge_index_h_batch, self.hparams.hyperedge_order)
+        return x_hat, batch_hyperedge, edge_attr_prime
+
+    def _shared_step(self, data):
         # Message Passing Step
         for i in range(self.hparams.message_passing_recurrent):
             if i == 0:
@@ -98,7 +114,7 @@ class HyPERModel(LightningModule):
                 )
 
         # Hyperedge Finding Step
-        x_hat, batch_hyperedge  = self.Hyperedge(x_prime, u_prime, data.batch, self.hparams.hyperedge_order)
+        x_hat, batch_hyperedge  = self.Hyperedge(x_prime, u_prime, data.batch, data.edge_index_h, data.edge_index_h_batch, self.hparams.hyperedge_order)
         return x_hat, batch_hyperedge, edge_attr_prime
 
     def configure_optimizers(self):
@@ -112,7 +128,7 @@ class HyPERModel(LightningModule):
         return optimizer
 
     def training_step(self, train_batch, batch_idx):
-        x_hat, batch_hyperedge, edge_attr_prime = self.forward(train_batch)
+        x_hat, batch_hyperedge, edge_attr_prime = self._shared_step(train_batch)
 
         # Train Loss Calculation
         if str(self.hparams.criterion_edge).lower() == 'bce':
@@ -141,7 +157,7 @@ class HyPERModel(LightningModule):
         return loss
 
     def validation_step(self, val_batch, batch_idx):
-        x_hat, batch_hyperedge, edge_attr_prime = self.forward(val_batch)
+        x_hat, batch_hyperedge, edge_attr_prime = self._shared_step(val_batch)
 
         # Validation Loss Calculation
         if str(self.hparams.criterion_edge).lower() == 'bce':
@@ -175,7 +191,7 @@ class HyPERModel(LightningModule):
         self.log('fuzzy_accuracy/validation_accuracy_hyperedge', accuracy_hyperedge, batch_size=len(val_batch), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        x_hat, batch_hyperedge, edge_attr_prime = self.forward(batch)
+        x_hat, batch_hyperedge, edge_attr_prime = self._shared_step(batch)
 
         # Unbatch results
         x_out         = unbatch(x_hat, batch_hyperedge.type(torch.int64), 0)

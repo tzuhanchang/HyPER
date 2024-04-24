@@ -141,7 +141,7 @@ class GraphDataset(torch.utils.data.Dataset):
         :rtype: :class:`Tuple[torch.tensor,torch.tensor]`
         """
         num_nodes = x.size(dim=0)
-        edge_index = torch.tensor(list(permutations(range(num_nodes),r=2))).permute(dims=(1,0))
+        edge_index = torch.tensor(list(permutations(range(num_nodes),r=2)),dtype=torch.int64).permute(dims=(1,0))
 
         edge_i = MomentumTensor.EEtaPhiPt(x[:,0:4].index_select(0, index=edge_index[0]))
         edge_j = MomentumTensor.EEtaPhiPt(x[:,0:4].index_select(0, index=edge_index[1]))
@@ -210,7 +210,7 @@ class GraphDataset(torch.utils.data.Dataset):
         :rtype: :class:`torch.tensor`
         """
         num_nodes = VertexID.size(dim=0)
-        hyperedge_index = torch.tensor(list(combinations(range(num_nodes),r=self.hyperedge_order))).permute(dims=(1,0))
+        hyperedge_index = torch.tensor(list(combinations(range(num_nodes),r=self.hyperedge_order)),dtype=torch.int64).permute(dims=(1,0))
 
         endpoints_ids = torch.concatenate(
             [ 2**VertexID.index_select(0, index=hyperedge_index[row]) for row in range(self.hyperedge_order) ],
@@ -219,7 +219,9 @@ class GraphDataset(torch.utils.data.Dataset):
         target_idx = torch.concatenate(
             [ torch.argwhere(endpoints_ids==id) for id in self.hyperedge_identifiers ]
         ).squeeze()
-        return torch.zeros(endpoints_ids.size(), dtype=torch.float32).scatter(dim=0, index=target_idx, src=torch.full(target_idx.size(), 1, dtype=torch.float32)).reshape(-1,1)
+
+        hyperegde_t = torch.zeros(endpoints_ids.size(), dtype=torch.float32).scatter(dim=0, index=target_idx, src=torch.full(target_idx.size(), 1, dtype=torch.float32)).reshape(-1,1)
+        return hyperegde_t, hyperedge_index
 
     def scale_features(self, src: Tensor, scaling_methods: List):
         for feature_idx in range(len(scaling_methods)):
@@ -246,13 +248,13 @@ class GraphDataset(torch.utils.data.Dataset):
 
         edge_attr, edge_index = self.get_edge_feats(x)
         edge_attr_t = self.get_edge_labels(edge_index, VertexID)
-        x_t = self.get_hyperedge_labels(VertexID)
+        x_t, hyperedge_index = self.get_hyperedge_labels(VertexID)
 
         x = self.scale_features(x, scaling_methods=self.node_scalings)
         u = self.scale_features(u, scaling_methods=self.global_scalings)
         edge_attr = self.scale_features(edge_attr, scaling_methods=['none','none','none','log'])
 
-        return Data(x_s=x, num_nodes=x.size(dim=0), edge_attr_s=edge_attr, edge_index=edge_index, u_s=u, edge_attr_t=edge_attr_t, x_t=x_t)
+        return Data(x_s=x, num_nodes=x.size(dim=0), edge_attr_s=edge_attr, edge_index=edge_index, edge_index_h=hyperedge_index, u_s=u, edge_attr_t=edge_attr_t, x_t=x_t)
 
     def __len__(self):
         return self.size
