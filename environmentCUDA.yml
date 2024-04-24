@@ -1,9 +1,11 @@
 name: HyPER
 channels:
   - pytorch
+  - nvidia
 dependencies:
   - python=3.10
-  - pytorch 
+  - pytorch
+  - pytorch-cuda=11.8
   - torchvision
   - torchaudio
   - pip:
