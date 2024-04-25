@@ -1,0 +1,25 @@
+INPUTS:
+  Objects:  ['jet']
+
+  Features:
+    e:      log
+    eta:    none
+    phi:    none
+    pt:     log
+    btag:   none
+    id:     none
+
+  global:
+    njet:      d6
+    nbTagged:  d2
+
+
+LABELS:
+  # These integers are `VertexID` defined in the dataset
+  Edges:
+    w1: [2,3]
+    w2: [5,6]
+
+  Hyperedges:
+    t1: [1,2,3]
+    t2: [4,5,6]

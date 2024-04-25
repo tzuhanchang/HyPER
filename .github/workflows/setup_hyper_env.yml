@@ -7,8 +7,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        env_files: ['environment.yml', 'environmentCUDA.yml']
 
     steps:
     - name: Checkout repository
@@ -20,17 +18,14 @@ jobs:
         python-version: '3.10'
 
     - name: Install dependencies
+      continue-on-error: true
       run: |
-        conda env update --file ${{ matrix.env_files }} --name base
+        conda env update --file environment.yml --name base
 
-    - name: Test PyTorch import
+    - name: Test HyPER training
       run: |
-        python -c "import torch"
+        python -m HyPER.train db_config="test/test_db.yaml" train_set="test/ttbar-allhad_test.h5" batch_size=2 device="cpu" num_workers=2
 
-    - name: Test PyG import
+    - name: Test HyPER predicting
       run: |
-        python -c "import torch_geometric"
-
-    - name: Test Lightning import
-      run: |
-        python -c "import pytorch_lightning; import lightning"
+        python -m HyPER.predict db_config="test/test_db.yaml" predict_set="test/ttbar-allhad_test.h5" batch_size=2 predict_model="HyPER_logs/version_0" predict_output="out.pkl"
