@@ -1,4 +1,4 @@
-name: Setup HyPER Environment
+name: Test HyPER
 
 on: [push]
 
@@ -24,8 +24,8 @@ jobs:
 
     - name: Test HyPER training
       run: |
-        python -m HyPER.train db_config="test/test_db.yaml" train_set="test/ttbar-allhad_test.h5" batch_size=2 device="cpu" num_workers=2
+        python -m HyPER.train --config-dir=test --config-name=test_config
 
     - name: Test HyPER predicting
       run: |
-        python -m HyPER.predict db_config="test/test_db.yaml" predict_set="test/ttbar-allhad_test.h5" batch_size=2 predict_model="HyPER_logs/version_0" predict_output="out.pkl"
+        python -m HyPER.predict --config-dir=test --config-name=test_config
