@@ -50,6 +50,16 @@ class HyPERModel(LightningModule):
         ):
         super().__init__()
 
+        self.example_input_array = {
+            "x_s": torch.randn((13,node_in_channels)),
+            "edge_attr_s": torch.randn((72,edge_in_channels)),
+            "edge_index": torch.randint(0,12,(2,72)),
+            "u_s": torch.randn((2,global_in_channels)),
+            "batch": torch.LongTensor([0,0,0,0,0,0,1,1,1,1,1,1,1]),
+            "edge_index_h": torch.randint(0,12,(hyperedge_order,55)),
+            "edge_index_h_batch": torch.cat([torch.full([20],0, dtype=torch.int64),torch.full([35],1, dtype=torch.int64)],dim=0)
+        }
+
         self.save_hyperparameters()
 
         for i in range(self.hparams.message_passing_recurrent):
