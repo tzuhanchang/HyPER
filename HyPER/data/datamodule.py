@@ -143,7 +143,7 @@ class HyPERDataModule(LightningDataModule):
         return DataLoader(
             self.train_data,
             batch_size=self.batch_size,
-            follow_batch=['edge_attr_s'],
+            follow_batch=['edge_attr_s', 'edge_index_h'],
             pin_memory=self.pin_memory,
             num_workers=self.num_workers,
             persistent_workers=self.persistent_workers,
@@ -155,7 +155,7 @@ class HyPERDataModule(LightningDataModule):
         return DataLoader(
             self.val_data,
             batch_size=self.batch_size,
-            follow_batch=['edge_attr_s'],
+            follow_batch=['edge_attr_s', 'edge_index_h'],
             pin_memory=self.pin_memory,
             num_workers=self.num_workers,
             persistent_workers=self.persistent_workers,
@@ -163,5 +163,5 @@ class HyPERDataModule(LightningDataModule):
         )
 
     def predict_dataloader(self):
-        return DataLoader(self.predict_data, batch_size=self.batch_size, follow_batch=['edge_attr_s'],
+        return DataLoader(self.predict_data, batch_size=self.batch_size, follow_batch=['edge_attr_s', 'edge_index_h'],
                           pin_memory=self.pin_memory, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
