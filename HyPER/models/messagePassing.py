@@ -1,7 +1,7 @@
 import torch
 
-from torch.nn import Module, Sequential as Seq, Linear, ReLU, Dropout, Sigmoid
-from torch_scatter import scatter_mean, scatter_max
+from torch.nn import Module, Sequential as Seq, Linear, ReLU, Dropout
+from torch_geometric.utils import scatter
 
 
 
@@ -76,8 +76,8 @@ class NodeModel(Module):
         row, col = edge_index
         out = torch.cat([x[row], x[col], edge_attr], 1).float()
         out = self.node_mlp_1(out) # message
-        agg_mean = scatter_mean(out, col, dim=0, dim_size=x.size(0))
-        agg_max = scatter_max(out, col, dim=0, dim_size=x.size(0))[0]
+        agg_mean = scatter(out, col, dim=0, dim_size=x.size(0), reduce='mean')
+        agg_max = scatter(out, col, dim=0, dim_size=x.size(0), reduce='max')
         out = torch.cat([x, agg_mean, agg_max, u[batch]], dim=1).float()
         return self.node_mlp_2(out) # update node with message
 
@@ -110,5 +110,5 @@ class GlobalModel(Module):
         # edge_attr: [E, F_e]
         # u: [B, F_u]
         # batch: [N] with max entry B - 1.
-        out = torch.cat([u, scatter_mean(x, batch, dim=0), scatter_max(x, batch, dim=0)[0]], dim=1).float()
+        out = torch.cat([u, scatter(x, batch, dim=0, dim_size=u.size(0), reduce='mean'), scatter(x, batch, dim=0, dim_size=u.size(0), reduce='max')], dim=1).float()
         return self.global_mlp(out)
