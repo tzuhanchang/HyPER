@@ -74,7 +74,7 @@ def Train(cfg : DictConfig) -> None:
             monitor="fuzzy_accuracy/validation_accuracy_hyperedge",
             mode="max",
             min_delta=0.00,
-            patience=20,
+            patience=cfg['patience'],
             verbose=False
         ),
         LearningRateMonitor(),

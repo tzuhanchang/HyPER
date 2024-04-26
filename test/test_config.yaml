@@ -20,6 +20,7 @@ loss_reduction:       "mean"
 alpha:                0.8
 
 epochs:       1
+patience:     50
 batch_size:   2
 
 device:       "cpu"
