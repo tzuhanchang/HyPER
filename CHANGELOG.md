@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## \[1.0.0\] - 2024-MM-DD
 
 ### Added
+ - Implement learning rate scheduler `torch.optim.lr_scheduler.ReduceLROnPlateau` ([#31](https://github.com/tzuhanchang/HyPER/pull/31))
  - Implement workflows ([#29](https://github.com/tzuhanchang/HyPER/pull/29))
  - Add `drop_last` option ([#21](https://github.com/tzuhanchang/HyPER/pull/21))
  - Add `max_n_events` option ([#19](https://github.com/tzuhanchang/HyPER/pull/19))

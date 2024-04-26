@@ -1,7 +1,7 @@
 import torch
 
 from torch.nn import BCELoss, Sigmoid
-from torch.optim import Adam
+from torch.optim import lr_scheduler, Adam
 from torch_geometric.utils import unbatch, degree
 from pytorch_lightning import LightningModule
 from HyPER.models import MPNNs, HyperedgeModel, HyperedgeLoss, EdgeLoss, CombinedLoss
@@ -125,7 +125,16 @@ class HyPERModel(LightningModule):
         # -------------------------------------
         else:
             raise ValueError("Supported optimizers are: `torch.Adam`.")
-        return optimizer
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.8, patience=10),
+                "interval": "epoch",
+                "monitor": "fuzzy_accuracy/validation_accuracy_hyperedge",
+                "frequency": 1,
+                "strict": True
+            },
+        }
 
     def training_step(self, train_batch, batch_idx):
         x_hat, batch_hyperedge, edge_attr_prime = self._shared_step(train_batch)
