@@ -1,0 +1,36 @@
+name: Test HyPER
+
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Conda for Python 3.10
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        python-version: '3.10'
+
+    - name: Add conda to system path
+      run: |
+        # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA/bin >> $GITHUB_PATH
+
+    - name: Install dependencies
+      continue-on-error: true
+      run: |
+        conda env update --file environment.yml --name base
+
+    - name: Test HyPER training
+      run: |
+        python -m HyPER.train --config-dir=test --config-name=test_config
+
+    - name: Test HyPER predicting
+      run: |
+        python -m HyPER.predict --config-dir=test --config-name=test_config

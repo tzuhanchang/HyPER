@@ -1,0 +1,36 @@
+train_set:        "test/ttbar-allhad_test.h5"
+val_set:          null
+db_config:        "test/test_db.yaml"
+train_val_split:  0.5
+all_matched:      False
+max_n_events:     -1
+drop_last:        False
+
+num_message_layers:   3
+hyperedge_order:      3
+message_feats:        64
+hyperedge_feats:      128
+dropout:              0.01
+
+optimizer:            "Adam"
+learning_rate:        0.0003
+criterion_edge:       "BCE"
+criterion_hyperedge:  "BCE"
+loss_reduction:       "mean"
+alpha:                0.8
+
+epochs:       1
+batch_size:   2
+
+device:       "cpu"
+num_devices:   1
+num_workers:  2
+
+savedir: "HyPER_logs"
+continue_from_ckpt: null
+
+predict_set:    "test/ttbar-allhad_test.h5"
+predict_with:   "cpu"
+predict_model:  "HyPER_logs/version_0"
+predict_output: "out.pkl"
+topology: ttbar_allhad
