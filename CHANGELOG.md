@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## \[1.0.0\] - 2024-MM-DD
 
 ### Added
+ - Implement workflows ([#29](https://github.com/tzuhanchang/HyPER/pull/29))
  - Add `drop_last` option ([#21](https://github.com/tzuhanchang/HyPER/pull/21))
  - Add `max_n_events` option ([#19](https://github.com/tzuhanchang/HyPER/pull/19))
  - Add `HyPER.EventSampler` ([#19](https://github.com/tzuhanchang/HyPER/pull/19))
@@ -18,6 +19,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  - Add dataset configuration example [`db.yaml`](examples/ttbar_allhad/db.yaml) ([#4](https://github.com/tzuhanchang/HyPER/pull/4))
 
 ### Changed
+ - Phase out `torch_scatter` ([#28](https://github.com/tzuhanchang/HyPER/pull/28))
  - Move core reconstruction function in `HyPER/examples/ttbar_allhad/reconstruct_ttbar_allhad.py` to `HyPER/topology/ttbar.py` ([#14](https://github.com/tzuhanchang/HyPER/pull/14))
  - Update `HyPER/models/HyPERModel.py` to include `predict_step` ([#14](https://github.com/tzuhanchang/HyPER/pull/14))
  - Update `HyPER/data/datamodule.py` to include `predict_dataloader` ([#14](https://github.com/tzuhanchang/HyPER/pull/14))
