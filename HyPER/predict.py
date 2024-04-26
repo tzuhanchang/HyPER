@@ -49,11 +49,7 @@ def Predict(cfg : DictConfig) -> None:
     hparams_file = os.path.join(cfg['predict_model'], "hparams.yaml")
     assert os.path.isfile(hparams_file), f"`hparams.ymal` is not found in {cfg['predict_model']}."
 
-    model = HyPERModel(
-        node_in_channels = datamodule.node_in_channels,
-        edge_in_channels = datamodule.edge_in_channels,
-        global_in_channels = datamodule.global_in_channels,
-    ).load_from_checkpoint(
+    model = HyPERModel.load_from_checkpoint(
         checkpoint_path = ckpt_file,
         hparams_file = hparams_file,
         map_location = map_location,
