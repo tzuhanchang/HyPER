@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  - Add dataset configuration example [`db.yaml`](examples/ttbar_allhad/db.yaml) ([#4](https://github.com/tzuhanchang/HyPER/pull/4))
 
 ### Changed
+ - Phase out `torch_scatter` ([#28](https://github.com/tzuhanchang/HyPER/pull/28))
  - Move core reconstruction function in `HyPER/examples/ttbar_allhad/reconstruct_ttbar_allhad.py` to `HyPER/topology/ttbar.py` ([#14](https://github.com/tzuhanchang/HyPER/pull/14))
  - Update `HyPER/models/HyPERModel.py` to include `predict_step` ([#14](https://github.com/tzuhanchang/HyPER/pull/14))
  - Update `HyPER/data/datamodule.py` to include `predict_dataloader` ([#14](https://github.com/tzuhanchang/HyPER/pull/14))
