@@ -102,20 +102,7 @@ class HyPERModel(LightningModule):
         return x_hat, batch_hyperedge, edge_attr_prime
 
     def _shared_step(self, data):
-        # Message Passing Step
-        for i in range(self.hparams.message_passing_recurrent):
-            if i == 0:
-                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
-                    data.x_s, data.edge_index, data.edge_attr_s, data.u_s, data.batch
-                )
-            else:
-                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
-                    x_prime, data.edge_index, edge_attr_prime, u_prime, data.batch
-                )
-
-        # Hyperedge Finding Step
-        x_hat, batch_hyperedge  = self.Hyperedge(x_prime, u_prime, data.batch, data.edge_index_h, data.edge_index_h_batch, self.hparams.hyperedge_order)
-        return x_hat, batch_hyperedge, edge_attr_prime
+        return self.forward(data.x_s, data.edge_index, data.edge_attr_s, data.u_s, data.batch, data.edge_index_h, data.edge_index_h_batch)
 
     def configure_optimizers(self):
         if str(self.hparams.optimizer).lower() == 'adam':
