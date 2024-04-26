@@ -12,8 +12,10 @@ message_feats:        64
 hyperedge_feats:      128
 dropout:              0.01
 
-optimizer:            "Adam"
+optimizer:            "SGD"
 learning_rate:        0.0003
+weight_decay:         0.0
+momentum:             0.0
 criterion_edge:       "BCE"
 criterion_hyperedge:  "BCE"
 loss_reduction:       "mean"
