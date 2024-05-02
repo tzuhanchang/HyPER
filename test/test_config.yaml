@@ -33,5 +33,5 @@ continue_from_ckpt: null
 predict_set:    "test/ttbar-allhad_test.h5"
 predict_with:   "cpu"
 predict_model:  "HyPER_logs/version_0"
-predict_output: "out.pkl"
+predict_output: "out.h5"
 topology: ttbar_allhad
