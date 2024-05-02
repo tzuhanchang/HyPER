@@ -3,7 +3,21 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## \[1.0.0\] - 2024-MM-DD
+## \[1.1.0\] - 2024-MM-DD
+
+### Added
+ - Add option to save results to a `HDF5` file when `.h5` extension is used in `predict_output` ([#41](https://github.com/tzuhanchang/HyPER/pull/41))
+
+### Changed
+
+### Deprecated
+
+### Fixed
+
+### Removed
+
+
+## \[1.0.0\] - 2024-05-02
 
 ### Added
  - Add `patience` option in configuration file ([#32](https://github.com/tzuhanchang/HyPER/pull/32))
@@ -29,10 +43,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  - Update example all-hadronic ttbar [reconstruction script](examples/ttbar_allhad/reconstruct_ttbar_allhad.py) ([#4](https://github.com/tzuhanchang/HyPER/pull/4))
  - Move function `getUndirectedEdges` to `HyPER.utils` ([#4](https://github.com/tzuhanchang/HyPER/pull/4))
  - Improvements to `GraphDataset`, using `HDF5` file to store and load data, compute graphs on the fly ([#4](https://github.com/tzuhanchang/HyPER/pull/4))
-
-### Deprecated
-
-### Fixed
 
 ### Removed
  - Removed legacy evaluation script `HyPER/evaluation/Evaluate.py` ([#14](https://github.com/tzuhanchang/HyPER/pull/14))
