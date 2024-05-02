@@ -12,7 +12,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from HyPER.data import HyPERDataModule
 from HyPER.models import HyPERModel
-from HyPER.utils import getUndirectedEdges
+from HyPER.utils import getUndirectedEdges, ResultWriter
 from HyPER.topology import ttbar_allhad
 
 
@@ -99,10 +99,17 @@ def Predict(cfg : DictConfig) -> None:
     results = eval(cfg['topology'])(results)
     
     if cfg['predict_output'] is None:
-        warnings.warn("No output path is provided in `predict_output`, use default: `output.pkl`.")
-        results.to_pickle("output.pkl")
+        warnings.warn("No output path is provided in `predict_output`, use default: `output.h5`.")
+        ResultWriter(results, "output.h5")
     else:
-        results.to_pickle(str(cfg['predict_output']))
+        if str(cfg['predict_output'])[-3:] == '.h5':
+            warnings.warn("Saving results to a `.h5` file, RAW outputs will not be saved. If you want to save all output, use `.pkl` extension.", UserWarning)
+            ResultWriter(results, str(cfg['predict_output']))
+        elif str(cfg['predict_output'])[-4:] == '.pkl':
+            warnings.warn("Pickling all results (including RAW network outputs), your performance may suffer.", UserWarning)
+            results.to_pickle(str(cfg['predict_output']))
+        else:
+            raise ValueError("You must provide a file extension: `.h5` or `.pkl`.")
 
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
