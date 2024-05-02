@@ -3,7 +3,8 @@ import math
 
 from torch.nn import Module, Sequential as Seq, Linear, ReLU, Dropout, Sigmoid, Parameter, init
 from torch.nn.functional import relu
-from torch_geometric.utils import softmax
+
+from HyPER.utils import softmax
 
 
 class HyperedgeModel(Module):
@@ -60,7 +61,7 @@ class HyperedgeModel(Module):
         return x_hyper.sum(2)
 
     def weighting(self, x_hyper, batch_hyper):
-        coefficient = softmax(x_hyper, index=batch_hyper)
+        coefficient = softmax(x_hyper, index=batch_hyper, dim_size=x_hyper.size(1))
         return coefficient * relu(torch.mm(x_hyper, self.weight), inplace=True)
 
     def forward(self, x, u, batch, hyperedge_index, batch_hyper, r):
