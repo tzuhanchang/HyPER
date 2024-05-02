@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## \[1.1.0\] - 2024-MM-DD
 
 ### Added
+ - Implement HyPER `ONNX` model export ([#43](https://github.com/tzuhanchang/HyPER/pull/43))
  - Add option to save results to a `HDF5` file when `.h5` extension is used in `predict_output` ([#41](https://github.com/tzuhanchang/HyPER/pull/41))
 
 ### Changed
