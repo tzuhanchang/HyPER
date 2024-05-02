@@ -35,3 +35,6 @@ predict_with:   "cpu"
 predict_model:  "HyPER_logs/version_0"
 predict_output: "out.h5"
 topology: ttbar_allhad
+
+onnx_output:   "HyPER.onnx"
+convert_model: "HyPER_logs/version_0"

@@ -34,3 +34,7 @@ jobs:
     - name: Test HyPER predicting
       run: |
         python -m HyPER.predict --config-dir=test --config-name=test_config
+
+    - name: Test ONNX output
+      run: |
+        python -m HyPER.onnx --config-dir=test --config-name=test_config
