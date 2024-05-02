@@ -27,3 +27,6 @@ dependencies:
     - torch-hep==0.0.4
     - hydra-core
     - rich
+    - onnx
+    - onnxruntime
+    - onnxscript
