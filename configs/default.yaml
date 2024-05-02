@@ -35,3 +35,6 @@ predict_with:   "cpu"
 predict_model:  null
 predict_output: null
 topology: ttbar_allhad
+
+onnx_output:   "HyPER.onnx"
+convert_model: null
