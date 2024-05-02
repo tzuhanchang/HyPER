@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  - Add option to save results to a `HDF5` file when `.h5` extension is used in `predict_output` ([#41](https://github.com/tzuhanchang/HyPER/pull/41))
 
 ### Changed
+ - Customize `softmax` function ([#36](https://github.com/tzuhanchang/HyPER/pull/36))
 
 ### Deprecated
 
