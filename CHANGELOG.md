@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 ### Removed
+ - Removed legacy `.json` based ttbar configuration `examples/ttbar_allhad/ttbar_allhad.json` ([#44](https://github.com/tzuhanchang/HyPER/pull/44))
 
 
 ## \[1.0.0\] - 2024-05-02
