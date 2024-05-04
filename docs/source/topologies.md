@@ -10,3 +10,7 @@ HTop
 
     * All-hadronic: `ttbar_allhad` <sup>Contributor(s): Zihan Zhang (University of Manchester)</sup>
     * Semi-leptonic (l+jets) <sup>Contributor(s): Marc Oriol and Eleni Togia (University of Manchester)</sup>
+
+- $t\bar{t}t\bar{t}$
+
+    * All-hadronic: `FourTop_allhad` <sup>Contributor(s): Zihan Zhang (University of Manchester)</sup>

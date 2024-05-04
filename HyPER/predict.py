@@ -13,7 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 from HyPER.data import HyPERDataModule
 from HyPER.models import HyPERModel
 from HyPER.utils import getUndirectedEdges, ResultWriter
-from HyPER.topology import ttbar_allhad
+from HyPER.topology import *
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="default")
