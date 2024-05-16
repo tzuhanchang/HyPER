@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 
 ### Fixed
+ - Fix `RuntimeError` raised by `HyPER.utils.softmax` during coefficient calculation ([#47](https://github.com/tzuhanchang/HyPER/pull/47))
 
 ### Removed
  - Removed legacy `.json` based ttbar configuration `examples/ttbar_allhad/ttbar_allhad.json` ([#44](https://github.com/tzuhanchang/HyPER/pull/44))
