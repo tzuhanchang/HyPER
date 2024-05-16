@@ -61,7 +61,7 @@ class HyperedgeModel(Module):
         return x_hyper.sum(2)
 
     def weighting(self, x_hyper, batch_hyper):
-        coefficient = softmax(x_hyper, index=batch_hyper, dim_size=x_hyper.size(1))
+        coefficient = softmax(x_hyper, index=batch_hyper, dim_size=x_hyper.size(0))
         return coefficient * relu(torch.mm(x_hyper, self.weight), inplace=True)
 
     def forward(self, x, u, batch, hyperedge_index, batch_hyper, r):
