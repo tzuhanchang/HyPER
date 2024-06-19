@@ -25,7 +25,7 @@ jobs:
     - name: Install dependencies
       continue-on-error: true
       run: |
-        conda env update --file environment.yml --name base
+        conda env update --file environment_linux.yml --name base
 
     - name: Test HyPER training
       run: |
