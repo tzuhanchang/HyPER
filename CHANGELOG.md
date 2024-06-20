@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 
 ### Fixed
+ - Fix the external packages versionsm, only Linux is support at the moment ([#52](https://github.com/tzuhanchang/HyPER/pull/52))
  - Fix `RuntimeError` raised by `HyPER.utils.softmax` during coefficient calculation ([#47](https://github.com/tzuhanchang/HyPER/pull/47))
 
 ### Removed
