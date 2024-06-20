@@ -19,11 +19,11 @@ Setup Environment
 
 !!! Note
 
-    We recommend setting up environemnt using [Anaconda or Miniconda](https://conda.io/projects/conda/en/latest/user-guide/install) with our provided `environment.yml` file.
+    We recommend setting up environemnt using [Anaconda or Miniconda](https://conda.io/projects/conda/en/latest/user-guide/install) with our provided `environment_linux.yml` file.
 
 After installing `conda`, simply run:
 ```
-conda env create -f environment.yml
+conda env create -f environment_linux.yml
 ```
 
 To setup environment manually, HyPER requires the following dependencies:

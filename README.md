@@ -44,11 +44,11 @@ Based on these RAW outputs, events can then be reconstructed by stating the corr
 
 
 ## Enviroment
-Currenlty, `conda` auto environment solving is only supported by Linux/amd64 machines, due to some ongoing issues with `torch_geometric` in MacOS. A conda environment file [`environment.yml`](environment.yml) is provided. We recommand use [miniforge](https://github.com/conda-forge/miniforge) as your `conda` package manager due to its lightweightness.
+Currenlty, `conda` auto environment solving is only supported by Linux/amd64 machines, due to some ongoing issues with `torch_geometric` in MacOS. A conda environment file [`environment_linux.yml`](environment_linux.yml) is provided. We recommend using [miniforge](https://github.com/conda-forge/miniforge) as your `conda` package manager due to its lightweightness.
 
 To create a `conda` environment named _"HyPER"_:
 ```
-conda env create -f environment.yml
+conda env create -f environment_linux.yml
 ```
 
 We have tested the code with `CUDA=11.8`, HyPER should work with any `CUDA` versions above.
