@@ -23,7 +23,7 @@ Setup Environment
 
 After installing `conda`, simply run:
 ```
-conda env create -f environment_linux.yml
+conda env create -f environment_linux.yaml
 ```
 
 To setup environment manually, HyPER requires the following dependencies:
