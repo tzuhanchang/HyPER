@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
  - Customize `softmax` function ([#36](https://github.com/tzuhanchang/HyPER/pull/36))
+ - Use dynamic dimensions for `ONNX` input samples ([#56](https://github.com/tzuhanchang/HyPER/pull/56))
 
 ### Deprecated
 
