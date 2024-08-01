@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  - Add topology: `FourTop_allhad` ([#45](https://github.com/tzuhanchang/HyPER/pull/45))
  - Implement HyPER `ONNX` model export ([#43](https://github.com/tzuhanchang/HyPER/pull/43))
  - Add option to save results to a `HDF5` file when `.h5` extension is used in `predict_output` ([#41](https://github.com/tzuhanchang/HyPER/pull/41))
+ - Add MacOS support (CPU only) ([#57](https://github.com/tzuhanchang/HyPER/pull/57))
 
 ### Changed
  - Customize `softmax` function ([#36](https://github.com/tzuhanchang/HyPER/pull/36))
