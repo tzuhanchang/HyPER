@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  build-linux:
+  HyPER-workflow:
     runs-on: ${{ matrix.os }}
 
     strategy:
