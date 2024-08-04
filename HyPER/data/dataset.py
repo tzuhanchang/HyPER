@@ -80,6 +80,8 @@ class GraphDataset(torch.utils.data.Dataset):
             except ValueError:
                 print("HyPER currently only support hyperedges with the same order.")
 
+            self.restriction = None if str(cf['LABELS']['Restriction']).lower() == 'none' else list(cf['LABELS']['Restriction'])
+
         self.file_path = path
         self.use_index_select = use_index_select
 
@@ -199,7 +201,8 @@ class GraphDataset(torch.utils.data.Dataset):
 
     def get_hyperedge_labels(
         self,
-        VertexID: Tensor
+        VertexID: Tensor,
+        ObjectID: Tensor
     ) -> Tensor:
         r"""Get hyperedge labels.
 
@@ -221,6 +224,21 @@ class GraphDataset(torch.utils.data.Dataset):
         ).squeeze()
 
         hyperegde_t = torch.zeros(endpoints_ids.size(), dtype=torch.float32).scatter(dim=0, index=target_idx, src=torch.full(target_idx.size(), 1, dtype=torch.float32)).reshape(-1,1)
+    
+        # conditional selecting hyperedges
+        if self.restriction is not None:
+            hyperedgeObjectID = torch.gather(ObjectID.unsqueeze(1).expand([-1,3]), 0, hyperedge_index.permute(dims=(1,0))).sort(dim=1)[0]
+            satisfactory = torch.cat(
+                [(hyperedgeObjectID==torch.tensor(x).sort()[0]).sum(dim=1).unsqueeze(0) for x in self.restriction],
+                dim=0
+            ).max(dim=0)[0]
+            qualified_indices = torch.argwhere(satisfactory==3).flatten()
+            hyperedge_index = hyperedge_index.index_select(dim=1, index=qualified_indices)
+            hyperegde_t = hyperegde_t.index_select(dim=0, index=qualified_indices)
+
+            if hyperedge_index.nelement() == 0:
+                warnings.warn("There are no hyperedges defined after restrictions. This might cause error in the subsequent computing.", UserWarning)
+
         return hyperegde_t, hyperedge_index
 
     def scale_features(self, src: Tensor, scaling_methods: List):
@@ -248,7 +266,7 @@ class GraphDataset(torch.utils.data.Dataset):
 
         edge_attr, edge_index = self.get_edge_feats(x)
         edge_attr_t = self.get_edge_labels(edge_index, VertexID)
-        x_t, hyperedge_index = self.get_hyperedge_labels(VertexID)
+        x_t, hyperedge_index = self.get_hyperedge_labels(VertexID, x[:,-1])
 
         x = self.scale_features(x, scaling_methods=self.node_scalings)
         u = self.scale_features(u, scaling_methods=self.global_scalings)

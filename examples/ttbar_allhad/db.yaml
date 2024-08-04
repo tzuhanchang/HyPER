@@ -15,11 +15,12 @@ INPUTS:
 
 
 LABELS:
-  # These integers are `VertexID` defined in the dataset
   Edges:
-    w1: [2,3]
+    w1: [2,3] # These integers are `VertexID` defined in the dataset
     w2: [5,6]
 
   Hyperedges:
     t1: [1,2,3]
     t2: [4,5,6]
+
+  Restriction: none  # These integers are `id` defined in the dataset
