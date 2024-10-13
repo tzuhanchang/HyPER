@@ -16,7 +16,7 @@
 
 
 ### Network training
-HyPER model is built upon [pytorch_lightning](https://lightning.ai/docs/pytorch/stable/), which uses [tensorboard](https://www.tensorflow.org/tensorboard) logger to save trained models.
+HyPER model is built upon [lightning](https://lightning.ai/docs/pytorch/stable/), which uses [tensorboard](https://www.tensorflow.org/tensorboard) logger to save trained models.
 
 To train HyPER:
 ```

@@ -4,7 +4,7 @@ import torch
 import warnings
 
 import pandas as pd
-import pytorch_lightning as L
+import lightning.pytorch as pl
 
 from tqdm import tqdm
 from itertools import permutations, combinations
@@ -55,7 +55,7 @@ def Predict(cfg : DictConfig) -> None:
         map_location = map_location,
     )
 
-    trainer = L.Trainer(
+    trainer = pl.Trainer(
         accelerator = cfg['predict_with'],
         devices = cfg['num_devices']
     )

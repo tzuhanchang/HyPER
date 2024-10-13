@@ -1,10 +1,10 @@
 import hydra
 import torch
-import pytorch_lightning as L
+import lightning.pytorch as pl
 
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch.loggers import TensorBoardLogger
 from lightning_utilities.core.imports import RequirementCache
-from pytorch_lightning.callbacks import (
+from lightning.pytorch.callbacks import (
     LearningRateMonitor,
     ModelCheckpoint,
     RichProgressBar,
@@ -83,7 +83,7 @@ def Train(cfg : DictConfig) -> None:
         RichModelSummary(max_depth=1) if _RICH_AVAILABLE else ModelSummary(max_depth=1)
     ]
 
-    trainer = L.Trainer(
+    trainer = pl.Trainer(
         accelerator = cfg['device'],
         devices = cfg['num_devices'],
         max_epochs = cfg['epochs'],
