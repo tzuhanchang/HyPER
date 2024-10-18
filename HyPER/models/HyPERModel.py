@@ -3,7 +3,7 @@ import torch
 from torch.nn import BCELoss, Sigmoid
 from torch.optim import lr_scheduler, Adam
 from torch_geometric.utils import unbatch, degree
-from pytorch_lightning import LightningModule
+from lightning import LightningModule
 from HyPER.models import MPNNs, HyperedgeModel, HyperedgeLoss, EdgeLoss, CombinedLoss
 from HyPER.evaluation import Accuracy
 from torchmetrics.classification import BinaryAccuracy
@@ -11,7 +11,7 @@ from typing import Optional
 
 
 class HyPERModel(LightningModule):
-    r"""HyPER model, based on :obj:`pytorch_lightning`.
+    r"""HyPER model.
     :obj:`HyPERModel` is built using the message passing modules :obj:`MPGNN`
     and the hyperedge module :obj:`HyperedgeModel`.
 
