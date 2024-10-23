@@ -12,7 +12,7 @@
 
 ## Quick Start
 
-> We have removed graph building precedure following [#4](https://github.com/tzuhanchang/HyPER/pull/4). `GraphDataset` now loads flat data from a `HDF5` file and computes graph structure on the fly. We are no longer recommand and provide support to [release v0.1](https://github.com/tzuhanchang/HyPER/releases/tag/v0.1).
+> We have removed graph building precedure following [#4](https://github.com/tzuhanchang/HyPER/pull/4). `GraphDataset` now loads flat data from a `HDF5` file and computes graph structure on the fly. We no longer recommend nor provide support for [release v0.1](https://github.com/tzuhanchang/HyPER/releases/tag/v0.1).
 
 
 ### Network training
@@ -22,7 +22,7 @@ To train HyPER:
 ```
 python -m HyPER.train --config-name=default [options]
 ```
-HyPER uses [hydra](https://hydra.cc/) for configuring run ([#10](https://github.com/tzuhanchang/HyPER/pull/10)). You can overwrite any option using, for example, `all_matched=False` at the end, it overwrites the `all_matched` option provided in your configuration file.
+HyPER uses [hydra](https://hydra.cc/) for configuring runs ([#10](https://github.com/tzuhanchang/HyPER/pull/10)). You can overwrite any option using, for example, `all_matched=False` at the end, it overwrites the `all_matched` option provided in your configuration file.
 > Configuration files must be placed in the `configs` folder. Provide the file name without `.yaml` extension to `--config-name`.
 
 
@@ -44,11 +44,11 @@ Based on these RAW outputs, events can then be reconstructed by stating the corr
 
 
 ## Enviroment
-Currenlty, `conda` auto environment solving is only supported by Linux/amd64 machines, due to some ongoing issues with `torch_geometric` in MacOS. A conda environment file [`environment_linux.yml`](environment_linux.yml) is provided. We recommend using [miniforge](https://github.com/conda-forge/miniforge) as your `conda` package manager due to its lightweightness.
+Currenlty, `conda` auto environment solving is only supported by Linux/amd64 machines, due to some ongoing issues with `torch_geometric` in MacOS. A conda environment file [`environment_linux.yaml`](environment_linux.yaml) is provided. We recommend using [miniforge](https://github.com/conda-forge/miniforge) as your `conda` package manager due to its lightweightness.
 
 To create a `conda` environment named _"HyPER"_:
 ```
-conda env create -f environment_linux.yml
+conda env create -f environment_linux.yaml
 ```
 
 We have tested the code with `CUDA=11.8`, HyPER should work with any `CUDA` versions above.
