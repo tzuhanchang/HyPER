@@ -33,33 +33,27 @@ def Train(cfg : DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     datamodule = HyPERDataModule(
-        db_config = cfg['db_config'],
-        train_set = cfg['train_set'],
-        val_set = cfg['val_set'],
-        batch_size = cfg['batch_size'],
-        max_n_events = cfg['max_n_events'],
-        percent_valid_samples = 1 - float(cfg['train_val_split']),
-        num_workers = cfg['num_workers'],
-        pin_memory = True if cfg['device'] == "gpu" else False,
-        all_matched = cfg['all_matched'],
-        drop_last = cfg['drop_last']
+        config = cfg,
+        batch_size = cfg['Training']['batch_size'],
+        num_workers = cfg['Device']['num_workers'],
+        pin_memory = True if cfg['Device']['device'].lower() == "cuda" else False
     )
 
     model = HyPERModel(
         node_in_channels = datamodule.node_in_channels,
         edge_in_channels = datamodule.edge_in_channels,
         global_in_channels = datamodule.global_in_channels,
-        message_feats = cfg['message_feats'],
-        dropout = cfg['dropout'],
-        message_passing_recurrent = cfg['num_message_layers'],
-        contraction_feats = cfg['hyperedge_feats'],
-        hyperedge_order = cfg['hyperedge_order'],
-        criterion_edge = cfg['criterion_edge'],
-        criterion_hyperedge = cfg['criterion_hyperedge'],
-        optimizer = cfg['optimizer'],
-        lr = cfg['learning_rate'],
-        alpha = cfg['alpha'],
-        reduction = cfg['loss_reduction']
+        message_feats = cfg['Network']['message_feats'],
+        dropout = cfg['Training']['dropout'],
+        message_passing_recurrent = cfg['Network']['num_message_layers'],
+        contraction_feats = cfg['Network']['hyperedge_feats'],
+        hyperedge_order = cfg['Network']['hyperedge_order'],
+        criterion_edge = cfg['Training']['criterion_edge'],
+        criterion_hyperedge = cfg['Training']['criterion_hyperedge'],
+        optimizer = cfg['Training']['optimizer'],
+        lr = cfg['Training']['learning_rate'],
+        alpha = cfg['Training']['alpha'],
+        reduction = cfg['Training']['loss_reduction']
     )
 
     callbacks = [
@@ -74,7 +68,7 @@ def Train(cfg : DictConfig) -> None:
             monitor="fuzzy_accuracy/validation_accuracy_hyperedge",
             mode="max",
             min_delta=0.00,
-            patience=cfg['patience'],
+            patience=cfg['Training']['patience'],
             verbose=False
         ),
         LearningRateMonitor(),
@@ -84,17 +78,17 @@ def Train(cfg : DictConfig) -> None:
     ]
 
     trainer = pl.Trainer(
-        accelerator = cfg['device'],
-        devices = cfg['num_devices'],
-        max_epochs = cfg['epochs'],
+        accelerator = cfg['Device']['device'].lower(),
+        devices = cfg['Device']['num_devices'],
+        max_epochs = cfg['Training']['epochs'],
         callbacks = callbacks,
-        logger = TensorBoardLogger(save_dir=cfg['savedir'], name="", log_graph=True)
+        logger = TensorBoardLogger(save_dir=cfg['Training']['savedir'], name="", log_graph=True)
     )
 
-    if cfg['continue_from_ckpt'] is not None:
-        print("Resume training state from %s"%(cfg['continue_from_ckpt']))
+    if cfg['Training']['continue_from_ckpt'] is not None:
+        print("Resume training state from %s"%(cfg['Training']['continue_from_ckpt']))
 
-    trainer.fit(model, datamodule=datamodule, ckpt_path=cfg['continue_from_ckpt'])
+    trainer.fit(model, datamodule=datamodule, ckpt_path=cfg['Training']['continue_from_ckpt'])
 
 
 if __name__ == '__main__':

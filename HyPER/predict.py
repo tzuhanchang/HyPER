@@ -21,33 +21,28 @@ def Predict(cfg : DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     datamodule = HyPERDataModule(
-        db_config = cfg['db_config'],
-        train_set = None,
-        val_set = None,
-        predict_set = cfg['predict_set'],
-        batch_size = cfg['batch_size'],
-        percent_valid_samples = 1 - float(cfg['train_val_split']),
-        num_workers = cfg['num_workers'],
-        pin_memory = True if cfg['device'] == "gpu" else False,
-        all_matched = False
+        config = cfg,
+        batch_size = cfg['Training']['batch_size'],
+        num_workers = cfg['Device']['num_workers'],
+        pin_memory = True if cfg['Device']['device'].lower() == "cuda" else False
     )
 
     # Map location
-    map_location = torch.device('cuda') if cfg['predict_with'].lower() == "gpu" else torch.device('cpu')
+    map_location = torch.device('cuda') if cfg['Device']['device'].lower() == "cuda" else torch.device('cpu')
 
     # Load checkpoints
-    assert cfg['predict_model'] is not None, "No model directory is provided in `predict_model`. Abort!"
-    ckpt_file = [filename for filename in os.listdir(os.path.join(cfg['predict_model'], "checkpoints")) if filename.startswith("epoch")]
+    assert cfg['Reconstruction']['predict_model'] is not None, "No model directory is provided in `predict_model`. Abort!"
+    ckpt_file = [filename for filename in os.listdir(os.path.join(cfg['Reconstruction']['predict_model'], "checkpoints")) if filename.startswith("epoch")]
     if len(ckpt_file) > 1:
-        warnings.warn(f"There are multiple .ckpt files listed in {cfg['predict_model']}, using the last checkpoint.")
-        ckpt_file = os.path.join(cfg['predict_model'], "checkpoints", ckpt_file[-1])
+        warnings.warn(f"There are multiple .ckpt files listed in {cfg['Reconstruction']['predict_model']}, using the last checkpoint.")
+        ckpt_file = os.path.join(cfg['Reconstruction']['predict_model'], "checkpoints", ckpt_file[-1])
     if len(ckpt_file) == 0:
-        raise RuntimeError(f"No checkpoint files have been found in {cfg['predict_model']}.")
-    ckpt_file = os.path.join(cfg['predict_model'], "checkpoints", ckpt_file[0])
+        raise RuntimeError(f"No checkpoint files have been found in {cfg['Reconstruction']['predict_model']}.")
+    ckpt_file = os.path.join(cfg['Reconstruction']['predict_model'], "checkpoints", ckpt_file[0])
 
     # Load hyperparameters
-    hparams_file = os.path.join(cfg['predict_model'], "hparams.yaml")
-    assert os.path.isfile(hparams_file), f"`hparams.ymal` is not found in {cfg['predict_model']}."
+    hparams_file = os.path.join(cfg['Reconstruction']['predict_model'], "hparams.yaml")
+    assert os.path.isfile(hparams_file), f"`hparams.ymal` is not found in {cfg['Reconstruction']['predict_model']}."
 
     model = HyPERModel.load_from_checkpoint(
         checkpoint_path = ckpt_file,
@@ -56,8 +51,8 @@ def Predict(cfg : DictConfig) -> None:
     )
 
     trainer = pl.Trainer(
-        accelerator = cfg['predict_with'],
-        devices = cfg['num_devices']
+        accelerator = cfg['Device']['device'].lower(),
+        devices = cfg['Device']['num_devices']
     )
 
     out = trainer.predict(model, datamodule=datamodule)
@@ -73,9 +68,9 @@ def Predict(cfg : DictConfig) -> None:
         x_out, edge_attr_out, N_nodes, encodings = out[i]
 
         for j in range(len(x_out)):
-            hyperedges.append([list(x) for x in combinations(range(int(N_nodes[j])),r=cfg['hyperedge_order'])])
+            hyperedges.append([list(x) for x in combinations(range(int(N_nodes[j])),r=cfg['Network']['hyperedge_order'])])
             hyperedge_out.append(x_out[j].cpu().flatten().tolist())
-            hyperedge_vct.append([list(x) for x in combinations(encodings[j].cpu().flatten().tolist(),r=cfg['hyperedge_order'])])
+            hyperedge_vct.append([list(x) for x in combinations(encodings[j].cpu().flatten().tolist(),r=cfg['Network']['hyperedge_order'])])
 
             # Graph edge directionality removal
             edge_index = list(permutations(range(0,int(N_nodes[j])),2))
@@ -96,18 +91,18 @@ def Predict(cfg : DictConfig) -> None:
         }
     )
 
-    results = eval(cfg['topology'])(results)
+    results = eval(cfg['Reconstruction']['topology'])(results)
     
-    if cfg['predict_output'] is None:
+    if cfg['Reconstruction']['predict_output'] is None:
         warnings.warn("No output path is provided in `predict_output`, use default: `output.h5`.")
         ResultWriter(results, "output.h5")
     else:
-        if str(cfg['predict_output'])[-3:] == '.h5':
+        if str(cfg['Reconstruction']['predict_output'])[-3:] == '.h5':
             warnings.warn("Saving results to a `.h5` file, RAW outputs will not be saved. If you want to save all output, use `.pkl` extension.", UserWarning)
-            ResultWriter(results, str(cfg['predict_output']))
-        elif str(cfg['predict_output'])[-4:] == '.pkl':
+            ResultWriter(results, str(cfg['Reconstruction']['predict_output']))
+        elif str(cfg['Reconstruction']['predict_output'])[-4:] == '.pkl':
             warnings.warn("Pickling all results (including RAW network outputs), your performance may suffer.", UserWarning)
-            results.to_pickle(str(cfg['predict_output']))
+            results.to_pickle(str(cfg['Reconstruction']['predict_output']))
         else:
             raise ValueError("You must provide a file extension: `.h5` or `.pkl`.")
 
