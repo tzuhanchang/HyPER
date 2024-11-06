@@ -8,7 +8,7 @@ Dataset:
   global_features:  ['njet','nbTagged']
   global_norms:     ['z-score','z-score']
   boolean_filter:   'METADATA/FullyMatched'
-  edge_target:      [[2,3],[4,5]]
+  edge_target:      [[2,3],[5,6]]
   hyperedge_target: [[1,2,3],[4,5,6]]
   max_n_events:     -1
   drop_last:        False
