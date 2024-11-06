@@ -1,40 +1,49 @@
-train_set:        null
-val_set:          null
-db_config:        "db.yaml"
-train_val_split:  0.9
-all_matched:      True
-max_n_events:     -1
-drop_last:        True
+Dataset:
+  train_set:        null
+  val_set:          null
+  predict_set:      null
+  node_inputs:      ['JET']
+  node_features:    ['e','eta','phi','pt','btag']
+  node_norms:       ['log','non','non','log','non']
+  global_features:  ['njet','nbTagged']
+  global_norms:     ['z-score','z-score']
+  boolean_filter:   'METADATA/FullyMatched'
+  edge_target:      [[2,3],[5,6]]
+  hyperedge_target: [[1,2,3],[4,5,6]]
+  max_n_events:     -1
+  drop_last:        False
+  train_val_split:  0.9
 
-num_message_layers:   3
-hyperedge_order:      3
-message_feats:        64
-hyperedge_feats:      128
-dropout:              0.01
+Device:
+  device:      "CUDA"
+  num_devices: 1
+  num_workers: 12
 
-optimizer:            "Adam"
-learning_rate:        0.0003
-criterion_edge:       "BCE"
-criterion_hyperedge:  "BCE"
-loss_reduction:       "mean"
-alpha:                0.8
+Network:
+  num_message_layers: 3
+  hyperedge_order:    3
+  message_feats:      64
+  hyperedge_feats:    128
 
-epochs:       500
-patience:     50
-batch_size:   4096
+Training:
+  optimizer:            "Adam"
+  learning_rate:        0.001
+  dropout:              0.01
+  criterion_edge:       "BCE"
+  criterion_hyperedge:  "BCE"
+  loss_reduction:       "mean"
+  alpha:                0.8
+  epochs:               500
+  patience:             50
+  batch_size:           4096
+  savedir:              "HyPER_logs"
+  continue_from_ckpt:   null
 
-device:       "gpu"
-num_devices:   1
-num_workers:  12
+Reconstruction:
+  predict_model:  null
+  predict_output: null
+  topology: ttbar_allhad
 
-savedir: "HyPER_logs"
-continue_from_ckpt: null
-
-predict_set:    null
-predict_with:   "cpu"
-predict_model:  null
-predict_output: null
-topology: ttbar_allhad
-
-onnx_output:   "HyPER.onnx"
-convert_model: null
+Onnx:
+  onnx_output:   "HyPER.onnx"
+  convert_model: null

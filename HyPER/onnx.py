@@ -18,7 +18,7 @@ def to_onnx(LightningModel, output, **kwargs: Any) -> None:
     This function is modified from `lightning.pytorch.core.module`.
     """
     if not _ONNX_AVAILABLE:
-        raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
+        raise ModuleNotFoundError("`to_onnx()` requires `onnx` to be installed.")
 
     mode = LightningModel.training
 
@@ -36,20 +36,20 @@ def Onnx(cfg : DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     # Map location
-    map_location = torch.device('cuda') if cfg['predict_with'].lower() == "gpu" else torch.device('cpu')
+    map_location = torch.device('cuda') if cfg['Device']['device'].lower() == "cuda" else torch.device('cpu')
 
     # Load checkpoints
-    assert cfg['convert_model'] is not None, "No model directory is provided in `convert_model`. Abort!"
-    ckpt_file = [filename for filename in os.listdir(os.path.join(cfg['convert_model'], "checkpoints")) if filename.startswith("epoch")]
+    assert cfg['Onnx']['convert_model'] is not None, "No model directory is provided in `convert_model`. Abort!"
+    ckpt_file = [filename for filename in os.listdir(os.path.join(cfg['Onnx']['convert_model'], "checkpoints")) if filename.startswith("epoch")]
     if len(ckpt_file) > 1:
-        warnings.warn(f"There are multiple .ckpt files listed in {cfg['convert_model']}, using the last checkpoint.")
-        ckpt_file = os.path.join(cfg['convert_model'], "checkpoints", ckpt_file[-1])
+        warnings.warn(f"There are multiple .ckpt files listed in {cfg['Onnx']['convert_model']}, using the last checkpoint.")
+        ckpt_file = os.path.join(cfg['Onnx']['convert_model'], "checkpoints", ckpt_file[-1])
     if len(ckpt_file) == 0:
-        raise RuntimeError(f"No checkpoint files have been found in {cfg['convert_model']}.")
-    ckpt_file = os.path.join(cfg['convert_model'], "checkpoints", ckpt_file[0])
+        raise RuntimeError(f"No checkpoint files have been found in {cfg['Onnx']['convert_model']}.")
+    ckpt_file = os.path.join(cfg['Onnx']['convert_model'], "checkpoints", ckpt_file[0])
 
-    hparams_file = os.path.join(cfg['convert_model'], "hparams.yaml")
-    assert os.path.isfile(hparams_file), f"`hparams.ymal` is not found in {cfg['convert_model']}."
+    hparams_file = os.path.join(cfg['Onnx']['convert_model'], "hparams.yaml")
+    assert os.path.isfile(hparams_file), f"`hparams.ymal` is not found in {cfg['Onnx']['convert_model']}."
     with open(hparams_file) as stream:
         hparams = yaml.safe_load(stream)
 
@@ -85,7 +85,7 @@ def Onnx(cfg : DictConfig) -> None:
         "edge_index_h_batch": l_edge_index_h_batch_
     }
 
-    to_onnx(model, output=cfg['onnx_output'], **input_samples)
+    to_onnx(model, output=cfg['Onnx']['onnx_output'], **input_samples)
 
 
 if __name__ == "__main__":

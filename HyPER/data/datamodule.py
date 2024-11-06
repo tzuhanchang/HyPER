@@ -1,4 +1,3 @@
-import yaml
 import warnings
 
 from lightning import LightningDataModule
@@ -6,7 +5,7 @@ from torch.utils.data import random_split
 from torch_geometric.loader import DataLoader
 from typing import Optional
 
-from HyPER.data import GraphDataset, EventSampler
+from HyPER.data import GraphDataset, EventSampler, _check_dataset
 
 
 class HyPERDataModule(LightningDataModule):
@@ -14,14 +13,13 @@ class HyPERDataModule(LightningDataModule):
     process data.
 
     Args:
-        db_config (str): dataset configuration file.
+        config (str): path to the network configuration file.
         train_set (optional, str): training dataset path.(default :obj:`None`)
         val_set (optional, str): validation dataset path. (default :obj:`None`)
         predict_set (optional, str): predict dataset path. (default :obj:`None`)
         batch_size (optional, int): number of samples per batch to load. (default :obj:`128`)
         max_n_events (optional, int): maximum number of events used in training. (default :obj:`-1`)
         percent_valid_samples (optional, float): fraction of dataset to use as validation samples. (default :obj:`0.005`)
-        all_matched (optional, bool): only select fully matched events. (default :obj:`False`)
         drop_last (optional, bool): drop the last incompleted batch. (default :obj:`False`)
         num_workers (optional, int): loading data into memory with number of cpu workers. (default :obj:`0`)
         pin_memory (optional, bool): use memory pinning. (default :obj:`False`)
@@ -29,67 +27,64 @@ class HyPERDataModule(LightningDataModule):
     """
     def __init__(
         self,
-        db_config: str,
-        train_set: Optional[str] = None,
-        val_set: Optional[str] = None,
-        predict_set: Optional[str] = None,
+        config: str,
         batch_size: Optional[int] = 128,
-        max_n_events: Optional[int] = -1,
-        percent_valid_samples: Optional[float] = 0.05,
-        all_matched: Optional[bool] = False,
-        drop_last: Optional[bool] = False,
         num_workers: Optional[int] = 0,
         pin_memory: Optional[bool] = True,
         persistent_workers: Optional[bool] = True
     ):
         super().__init__()
 
-        self.db_config   = db_config
-        self.train_set   = train_set
-        self.val_set     = val_set
-        self.predict_set = predict_set
-        self.all_matched = all_matched
+        self.cfg         = config
+        self.train_set   = self.cfg['Dataset']['train_set']
+        self.val_set     = self.cfg['Dataset']['val_set']
+        self.predict_set = self.cfg['Dataset']['predict_set']
         self.batch_size  = batch_size
         self.num_workers = num_workers
         self.pin_memory  = pin_memory
-        self.drop_last   = drop_last
-        self.max_n_events = max_n_events
+        self.drop_last   = self.cfg['Dataset']['drop_last']
+        self.max_n_events = self.cfg['Dataset']['max_n_events']
         self.persistent_workers    = persistent_workers
-        self.percent_valid_samples = percent_valid_samples
+        self.percent_valid_samples = 1 - float(self.cfg['Dataset']['train_val_split'])
 
-        with open(db_config, 'r') as db_cfg:
-            cf = yaml.safe_load(db_cfg)
+        self.train_set_params = _check_dataset(self.train_set, self.cfg, 'train') if self.train_set is not None else None
+        self.val_set_params = _check_dataset(self.val_set, self.cfg, 'train') if self.val_set is not None else None
+        self.predict_set_params = _check_dataset(self.predict_set, self.cfg, 'train') if self.predict_set is not None else None
 
-            self.node_in_channels = len(list(cf['INPUTS']['Features'].keys()))
-            self.edge_in_channels = 4
-            self.global_in_channels  = len(list(cf['INPUTS']['global'].keys()))
+        self.node_in_channels   = len(self.cfg['Dataset']['node_features'])+1
+        self.edge_in_channels   = 4
+        self.global_in_channels = len(self.cfg['Dataset']['global_features'])
 
         self.index_range = None
 
     def setup(self, stage: str):
-        self.train_data = None
-        self.val_data   = None
+        self.train_data   = None
+        self.val_data     = None
+        self.predict_data = None
+
         if self.train_set is not None:
             if self.val_set is None or self.val_set == "" or self.train_set == self.val_set:
                 print(f"Creating validation set using {round(self.percent_valid_samples*100,2)}% of the file.")
-
-                if self.all_matched:
-                    data = GraphDataset(path=self.train_set, configs=self.db_config, use_index_select=True)
-                else:
-                    data = GraphDataset(path=self.train_set, configs=self.db_config)
-
+                data = GraphDataset(
+                    path=self.train_set,
+                    config=self.cfg,
+                    mode='train',
+                    _params=self.train_set_params
+                )
                 self.train_data, self.val_data = random_split(data, [1-self.percent_valid_samples, self.percent_valid_samples])
-
             else:
-                if self.all_matched is True:
-                    train_data = GraphDataset(path=self.train_set, configs=self.db_config, use_index_select=True)
-                    val_data = GraphDataset(path=self.val_set, configs=self.db_config, use_index_select=True)
-                else:
-                    train_data = GraphDataset(path=self.train_set, configs=self.db_config)
-                    val_data = GraphDataset(path=self.val_set, configs=self.db_config)
-
-                self.train_data = train_data
-                self.val_data   = val_data
+                self.train_data = GraphDataset(
+                    path=self.train_set,
+                    config=self.cfg,
+                    mode='train',
+                    _params=self.train_set_params
+                )
+                self.val_data = GraphDataset(
+                    path=self.val_set,
+                    config=self.cfg,
+                    mode='train',
+                    _params=self.val_set_params
+                )
 
             # Limit training dataset size to self.max_n_events
             if self.max_n_events == -1:
@@ -102,12 +97,13 @@ class HyPERDataModule(LightningDataModule):
             else:
                 pass
 
-        self.predict_data = None
         if self.predict_set is not None:
-            if self.all_matched:
-                self.predict_data = GraphDataset(path=self.predict_set, configs=self.db_config, use_index_select=True)
-            else:
-                self.predict_data = GraphDataset(path=self.predict_set, configs=self.db_config)
+            self.predict_data = GraphDataset(
+                path=self.predict_set,
+                config=self.cfg,
+                mode='test',
+                _params=self.predict_set_params
+            )
 
         if self.train_data is None and self.val_data is None and self.predict_data is None:
             raise ValueError("No datasets have been provided. Abort!")
@@ -120,7 +116,6 @@ class HyPERDataModule(LightningDataModule):
             table = Table(title="Dataset Status",header_style="orange1")
             table.add_column("Name", justify="left")
             table.add_column("Value", justify="left")
-            table.add_row("All matched only", str(self.all_matched))
             table.add_row("Drop last batch", str(self.drop_last))
             if self.train_data is not None:
                 if self.index_range is not None:
@@ -163,5 +158,11 @@ class HyPERDataModule(LightningDataModule):
         )
 
     def predict_dataloader(self):
-        return DataLoader(self.predict_data, batch_size=self.batch_size, follow_batch=['edge_attr_s', 'edge_index_h'],
-                          pin_memory=self.pin_memory, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        return DataLoader(
+            self.predict_data,
+            batch_size=self.batch_size,
+            follow_batch=['edge_attr_s', 'edge_index_h'],
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+            persistent_workers=self.persistent_workers
+        )

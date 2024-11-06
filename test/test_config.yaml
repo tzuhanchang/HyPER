@@ -1,40 +1,49 @@
-train_set:        "test/ttbar-allhad_test.h5"
-val_set:          null
-db_config:        "test/test_db.yaml"
-train_val_split:  0.5
-all_matched:      False
-max_n_events:     -1
-drop_last:        False
+Dataset:
+  train_set:        "test/ttbar-allhad_test.h5"
+  val_set:          null
+  predict_set:      "test/ttbar-allhad_test.h5"
+  node_inputs:      ['JET']
+  node_features:    ['e','eta','phi','pt','btag']
+  node_norms:       ['log','non','non','log','non']
+  global_features:  ['njet','nbTagged']
+  global_norms:     ['z-score','z-score']
+  boolean_filter:   null
+  edge_target:      [[2,3],[4,5]]
+  hyperedge_target: [[1,2,3],[4,5,6]]
+  max_n_events:     -1
+  drop_last:        False
+  train_val_split:  0.5
 
-num_message_layers:   3
-hyperedge_order:      3
-message_feats:        64
-hyperedge_feats:      128
-dropout:              0.01
+Device:
+  device:      "CPU"
+  num_devices: 1
+  num_workers: 2
 
-optimizer:            "Adam"
-learning_rate:        0.0003
-criterion_edge:       "BCE"
-criterion_hyperedge:  "BCE"
-loss_reduction:       "mean"
-alpha:                0.8
+Network:
+  num_message_layers: 3
+  hyperedge_order:    3
+  message_feats:      64
+  hyperedge_feats:    128
 
-epochs:       1
-patience:     50
-batch_size:   2
+Training:
+  optimizer:            "Adam"
+  learning_rate:        0.001
+  dropout:              0.01
+  criterion_edge:       "BCE"
+  criterion_hyperedge:  "BCE"
+  loss_reduction:       "mean"
+  alpha:                0.8
+  epochs:               1
+  patience:             50
+  batch_size:           2
+  savedir:              "HyPER_logs"
+  continue_from_ckpt:   null
 
-device:       "cpu"
-num_devices:   1
-num_workers:  2
+Reconstruction:
+  predict_model:  "HyPER_logs/version_0"
+  predict_output: "out.h5"
+  topology: ttbar_allhad
 
-savedir: "HyPER_logs"
-continue_from_ckpt: null
-
-predict_set:    "test/ttbar-allhad_test.h5"
-predict_with:   "cpu"
-predict_model:  "HyPER_logs/version_0"
-predict_output: "out.h5"
-topology: ttbar_allhad
-
-onnx_output:   "HyPER.onnx"
-convert_model: "HyPER_logs/version_0"
+Onnx:
+  onnx_output:   "HyPER.onnx"
+  convert_model: "HyPER_logs/version_0"
