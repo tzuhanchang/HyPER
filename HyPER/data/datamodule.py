@@ -1,4 +1,3 @@
-import yaml
 import warnings
 
 from lightning import LightningDataModule
@@ -6,7 +5,7 @@ from torch.utils.data import random_split
 from torch_geometric.loader import DataLoader
 from typing import Optional
 
-from HyPER.data import GraphDataset, EventSampler
+from HyPER.data import GraphDataset, EventSampler, _check_dataset
 
 
 class HyPERDataModule(LightningDataModule):
@@ -48,6 +47,10 @@ class HyPERDataModule(LightningDataModule):
         self.persistent_workers    = persistent_workers
         self.percent_valid_samples = 1 - float(self.cfg['Dataset']['train_val_split'])
 
+        self.train_set_params = _check_dataset(self.train_set, self.cfg, 'train') if self.train_set is not None else None
+        self.val_set_params = _check_dataset(self.val_set, self.cfg, 'train') if self.val_set is not None else None
+        self.predict_set_params = _check_dataset(self.predict_set, self.cfg, 'train') if self.predict_set is not None else None
+
         self.node_in_channels   = len(self.cfg['Dataset']['node_features'])+1
         self.edge_in_channels   = 4
         self.global_in_channels = len(self.cfg['Dataset']['global_features'])
@@ -62,11 +65,26 @@ class HyPERDataModule(LightningDataModule):
         if self.train_set is not None:
             if self.val_set is None or self.val_set == "" or self.train_set == self.val_set:
                 print(f"Creating validation set using {round(self.percent_valid_samples*100,2)}% of the file.")
-                data = GraphDataset(path=self.train_set, config=self.cfg, mode='train')
+                data = GraphDataset(
+                    path=self.train_set,
+                    config=self.cfg,
+                    mode='train',
+                    _params=self.train_set_params
+                )
                 self.train_data, self.val_data = random_split(data, [1-self.percent_valid_samples, self.percent_valid_samples])
             else:
-                self.train_data = GraphDataset(path=self.train_set, config=self.cfg, mode='train')
-                self.val_data   = GraphDataset(path=self.val_set,   config=self.cfg, mode='train')
+                self.train_data = GraphDataset(
+                    path=self.train_set,
+                    config=self.cfg,
+                    mode='train',
+                    _params=self.train_set_params
+                )
+                self.val_data = GraphDataset(
+                    path=self.val_set,
+                    config=self.cfg,
+                    mode='train',
+                    _params=self.val_set_params
+                )
 
             # Limit training dataset size to self.max_n_events
             if self.max_n_events == -1:
@@ -80,7 +98,12 @@ class HyPERDataModule(LightningDataModule):
                 pass
 
         if self.predict_set is not None:
-            self.predict_data = GraphDataset(path=self.predict_set, config=self.cfg, mode='test')
+            self.predict_data = GraphDataset(
+                path=self.predict_set,
+                config=self.cfg,
+                mode='test',
+                _params=self.predict_set_params
+            )
 
         if self.train_data is None and self.val_data is None and self.predict_data is None:
             raise ValueError("No datasets have been provided. Abort!")
@@ -135,5 +158,11 @@ class HyPERDataModule(LightningDataModule):
         )
 
     def predict_dataloader(self):
-        return DataLoader(self.predict_data, batch_size=self.batch_size, follow_batch=['edge_attr_s', 'edge_index_h'],
-                          pin_memory=self.pin_memory, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        return DataLoader(
+            self.predict_data,
+            batch_size=self.batch_size,
+            follow_batch=['edge_attr_s', 'edge_index_h'],
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+            persistent_workers=self.persistent_workers
+        )

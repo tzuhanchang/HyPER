@@ -10,8 +10,9 @@ from torch_geometric.data import Data
 from torch_hep.lorentz import MomentumTensor
 from itertools import permutations, combinations
 from typing import List, Tuple, Optional
-
 from omegaconf import DictConfig
+
+from HyPER.data import _check_dataset
 
 
 class EdgeEmbedding(object):
@@ -53,101 +54,17 @@ class GraphDataset(torch.utils.data.Dataset):
         self,
         path: str,
         config: DictConfig,
-        mode: Optional[str] = 'train'
+        mode: Optional[str] = 'train',
+        _params: Optional[dict] = None
     ):
         super(GraphDataset).__init__()
-        
 
         self.file_path = path
-        self.cfg = config['Dataset']
-        self._objLabel = {}
-        self._objPadding = {}
-        self._train_mode = True if mode.lower() == 'train' else False
-        self._use_index_select = False
-        self._use_kfold = False
-        self._use_EEtaPhiPt = False
-        self._use_EPxPyPz = False
-        self._node_norms   = self.cfg['node_norms']
-        self._global_norms = self.cfg['global_norms']
 
-        with h5py.File(self.file_path, 'r') as file:
-            # Check dataset
-            assert 'INPUTS' in file.keys(), "Data group `INPUTS` must be provided."
-            assert 'GLOBAL' in list(file['INPUTS'].keys()), "`INPUTS/GLOBAL` is not found."
-            self.dataset_size = len(file['INPUTS']['GLOBAL'])
-            obj_count = 1
-            for node_input in self.cfg['node_inputs']:
-                assert node_input in list(file['INPUTS'].keys()), f"`INPUTS/{node_input}` is not found."
-                assert self.dataset_size == len(file['INPUTS'][node_input]), f"INPUTS/{node_input} does not match with total number of events {self.dataset_size}."
-                self._objPadding.update({node_input: len(file['INPUTS'][node_input][0])})
-                self._objLabel.update({node_input: obj_count})  # Assign an unique ID for different types of objects
-                obj_count += 1
-
-            if self._train_mode:
-                assert 'LABELS' in file.keys(), "Data group `LABELS` must be provided in `train` mode."
-                assert 'ID' in list(file['LABELS'].keys()), "`LABELS/ID` is not found."
-                assert self.dataset_size == len(file['LABELS']['ID']), f"`LABELS/ID` does not match with total number of events {self.dataset_size}."
-
-            if self.cfg['boolean_filter'] is not None:
-                assert self.dataset_size == len(file[self.cfg['boolean_filter']]), f"`{self.cfg['boolean_filter']}` does not match with total number of events {self.dataset_size}."
-                self.index_select = np.array(range(self.dataset_size))[np.array(file[self.cfg['boolean_filter']],dtype=np.int64)==1]
-                self._use_index_select = True
-                self.dataset_size = len(self.index_select)
-
-            self.node_features = self.cfg['node_features']
-            assert self.node_features == list(file['INPUTS'][self.cfg['node_inputs'][0]].dtype.fields.keys()), \
-                f"`node_features` defined in the configuration file ({self.node_features}) do not matches with the ones in the dataset: {list(file['INPUTS'][self.cfg['node_inputs'][0]].dtype.fields.keys())}"
-
-            self.global_features = self.cfg['global_features']
-            assert self.global_features == list(file['INPUTS']['GLOBAL'].dtype.fields.keys()), \
-                f"`global_features` defined in the configuration file ({self.global_features}) do not matches with the ones in the dataset: {list(file['INPUTS']['GLOBAL'].dtype.fields.keys())}"
-
-            if self.node_features[:4] == ['e','eta','phi','pt']:
-                self._use_EEtaPhiPt = True
-            elif self.node_features[:4] == ['e','px','py','pz']:
-                self._use_EPxPyPz = True
-            else:
-                warnings.warn("You are not using the standard feature ordering or the naming scheme: ['e', 'eta', 'phi', 'pt'] or ['e', 'px', 'py', 'pz'] (for the first 4 features). This might cause problems in the edge construction stage.", UserWarning)
-                self._use_EPxPyPz = True
-
-            self.edge_identifiers = np.apply_along_axis(
-                lambda x: 2**x, axis=0, arr=list(self.cfg['edge_target'])
-            ).sum(axis=1)
-            self.hyperedge_identifiers = np.apply_along_axis(
-                lambda x: 2**x, axis=0, arr=list(self.cfg['hyperedge_target'])
-            ).sum(axis=1)
-
-            try:
-                HE_ids = np.array(list(self.cfg['hyperedge_target']))
-                self.hyperedge_order = HE_ids.shape[1]
-            except ValueError:
-                print("HyPER currently only support hyperedges with the same order.")
-
-            self.n_node_features = len(self.node_features) + 1
-            self.n_edge_features = 4
-            self.n_global_features = len(file['INPUTS']["GLOBAL"][0][0])
-
-            if self._node_norms is not None:
-                assert len(self._node_norms) == len(self.node_features), "For each node features, a normalisation method must be provided in `node_norms`."
-            else:
-                self._node_norms = ['non']*len(self.node_features)
-
-            if self._global_norms is not None:
-                assert len(self._global_norms) == self.n_global_features, "For each global features, a normalisation method must be provided in `global_norms`."
-            else:
-                self._global_norms = ['non']*self.n_global_features
-
-        self.get_std_scales()
-
-    def get_std_scales(self):
-        with h5py.File(self.file_path, 'r') as file:
-            nodes = pd.DataFrame(np.concatenate([np.concatenate(np.array(file['INPUTS'][obj])) for obj in self.cfg['node_inputs']]))
-            self._mean_nodes = nodes.mean().values
-            self._std_nodes  = nodes.std().values
-
-            glob = pd.DataFrame(np.concatenate(np.array(file['INPUTS']["GLOBAL"])))
-            self._mean_glob = glob.mean().values
-            self._std_glob  = glob.std().values
+        if _params is None:
+            _params = _check_dataset(path, config, mode)
+        for key, value in _params.items():
+            setattr(self, key, value)
 
     def normalization(self, src: Tensor, methods: List, obj: str) -> Tensor:
         r"""Normalise input features.
@@ -188,7 +105,7 @@ class GraphDataset(torch.utils.data.Dataset):
         x = torch.concatenate(
             [ 
                 torch.cat([torch.tensor(np.array(inputs_db[obj][index].tolist()),dtype=torch.float32), torch.full((self._objPadding[obj],1),self._objLabel[obj],dtype=torch.float32)],dim=1) 
-                for obj in self.cfg['node_inputs']
+                for obj in self.node_inputs
             ],
             dim=0
         )
