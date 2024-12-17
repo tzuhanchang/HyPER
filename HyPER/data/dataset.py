@@ -1,15 +1,19 @@
 import h5py
+import yaml
 import torch
-
-from os import listdir, path as osp
 import numpy as np
 
+from os import listdir, path as osp
 from torch import Tensor
 from torch_geometric.data import Data, InMemoryDataset
 from torch_hep.lorentz import MomentumTensor
 from itertools import permutations, combinations
 from tqdm import tqdm
 from typing import Callable, List, Optional, Tuple
+from warnings import warn
+
+from .transform import TransformFeatures
+from .filter import TargetConnectivityFilter
 
 
 class HyPERDataset(InMemoryDataset):
@@ -32,9 +36,59 @@ class HyPERDataset(InMemoryDataset):
         assert len(file_index) == 1
         self.file_index = file_index[0]
 
+        self.node_input_names = self.config['input']['names']
+        self.input_id = self.config['input']['ids']
+        self.input_pad_size = self.config['input']['padding']
+        self.edge_targets = self.config['target']['edge']
+        self.hyperedge_targets = self.config['target']['hyperedge']
+        self.hyperedge_order = len(self.hyperedge_targets[0])
+        self.target_edge_ids, self.target_hyperedge_ids = self.target_ids()
+
+        # Check 4-momentum inputs
+        self._use_EEtaPhiPt = False
+        self._use_EPxPyPz = False
+        if self.config['input']['node_features'][:4] == ['e','eta','phi','pt']:
+            self._use_EEtaPhiPt = True
+        elif self.config['input']['node_features'][:4] == ['e','px','py','pz']:
+            self._use_EPxPyPz = True
+        else:
+            warn("You are not using the standard feature ordering " \
+                "or the naming scheme: ['e', 'eta', 'phi', 'pt'] or "\
+                "['e', 'px', 'py', 'pz'] (for the first 4 features). "\
+                "This might cause problems in the edge construction stage.", 
+                UserWarning)
+            self._use_EPxPyPz = True
+
+        # Check if feature transformation is requested
+        transforms = TransformFeatures(["x", "u", "edge_attr"],
+            transforms=[
+                self.config['input']['node_transforms'],
+                self.config['input']['global_transforms'],
+                [lambda x: x, lambda x: x, lambda x: x, lambda x: torch.log(x)]
+            ])
+        if self.config['input']['pre_transform']:
+            pre_transform = transforms
+        else:
+            transform = transforms 
+
+        # Check if filter is requested
+        if 'filter' in self.config.keys():
+            pre_filter = TargetConnectivityFilter(
+                num_edge_targets=self.config['filter']['num_edges'],
+                num_hyperedge_targets=self.config['filter']['num_hyperedge'])
+
         super().__init__(root, transform, pre_transform, pre_filter,
                          force_reload=force_reload)
         self.load(self.processed_paths[self.file_index])
+
+    @property
+    def config(self) -> dict:
+        with open(osp.join(self.root, 'config.yaml'), "r") as f:
+            config = yaml.load(f, Loader=yaml.SafeLoader)
+        for key_lv1, value_lv1 in config.items():
+            for key_lv2, value_lv2 in value_lv1.items():
+                config[key_lv1][key_lv2] = eval(value_lv2)
+        return config
 
     @property
     def raw_dir(self) -> str:
@@ -256,18 +310,6 @@ class HyPERDataset(InMemoryDataset):
         return target_edge_ids, target_hyperedge_ids
 
     def process(self) -> None:
-        # temporary settings
-        self.node_input_names = ['JET']
-        self.input_id = {'JET':0}
-        self.input_pad_size = {'JET':20}
-        self.edge_targets = [['0-2','0-3'],['0-5','0-6']]
-        self.hyperedge_targets = [['0-1','0-2','0-3'],['0-4','0-5','0-6']]
-        self._use_EEtaPhiPt = True
-        self._use_EPxPyPz = False
-
-        self.hyperedge_order = 3
-        self.target_edge_ids, self.target_hyperedge_ids = self.target_ids()
-
         """
         Process all raw files in the `raw_dir`. This is only done 
         once unless `force_reload=True` is set.
