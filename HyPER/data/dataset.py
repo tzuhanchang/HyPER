@@ -1,260 +1,316 @@
-import re
 import h5py
-import yaml
 import torch
-import warnings
 
+from os import listdir, path as osp
 import numpy as np
 
 from torch import Tensor
-from torch_geometric.data import Data
+from torch_geometric.data import Data, InMemoryDataset
 from torch_hep.lorentz import MomentumTensor
-from itertools import permutations, groupby, combinations
-from typing import List, Tuple, Optional
+from itertools import permutations, combinations
+from tqdm import tqdm
+from typing import Callable, List, Optional, Tuple
 
 
-class EdgeEmbedding(object):
-    def __init__(self, u: MomentumTensor, v: MomentumTensor):
-        r"""Calculate edge embedding.
+class HyPERDataset(InMemoryDataset):
+    def __init__(
+        self,
+        root: str,
+        name: str,
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        pre_filter: Optional[Callable] = None,
+        force_reload: bool = False,
+    ) -> None:
+        self.root = root
+        self.name = name
+        self.names = [
+            osp.splitext(file)[0] for file in 
+            listdir(osp.join(self.root, "raw"))]
+        file_index = [i for i in range(len(self.names))
+                            if self.names[i] == self.name]
+        assert len(file_index) == 1
+        self.file_index = file_index[0]
 
-        Input tensors should store node kinematics in EEtaPhiPt or MEtaPhiPt order.
-        Args:
-            u (torch.Tensor): input tensor with size torch.Size([N,4]).
-            v (torch.Tensor): input tensor with size torch.Size([N,4]).
+        super().__init__(root, transform, pre_transform, pre_filter,
+                         force_reload=force_reload)
+        self.load(self.processed_paths[self.file_index])
+
+    @property
+    def raw_dir(self) -> str:
+        return osp.join(self.root, 'raw')
+
+    @property
+    def processed_dir(self) -> str:
+        return osp.join(self.root, 'processed')
+
+    @property
+    def raw_file_names(self) -> List[str]:
+        return [f'{name}.h5' for name in self.names]
+
+    @property
+    def processed_file_names(self) -> List[str]:
+        return [f'{name}.pt' for name in self.names]
+
+    def node_attributes(
+        self,
+        INPUTS: h5py._hl.group.Group,
+        index: int
+    ) -> Tensor:
         """
-        self.u = u
-        self.v = v
-
-    def dEta(self):
-        return self.u.eta - self.v.eta
-
-    def dPhi(self):
-        return torch.arctan2(torch.sin(self.u.phi-self.v.phi),torch.cos(self.u.phi-self.v.phi))
-
-    def dR(self):
-        return torch.sqrt((self.dEta())**2+(self.dPhi())**2)
-
-    def M(self):
-        p4 = self.u + self.v
-        return p4.m
-
-
-class GraphDataset(torch.utils.data.Dataset):
-    r"""HyPER Graph Dataset interfaced with HDF5 file format. `GraphDataset`
-    embeds data into the graph structure when required.
-
-    Args:
-        path (str): path to the dataset.
-        configs (str): a :obj:`yaml` file saves dataset configurations.
-        use_index_select (optional, bool): use :obj:`IndexSelect` provided in the :obj:`.h5`
-            file to select out graphs (default: :obj:`False`).
-    """
-    def __init__(self, path: str, configs: str, use_index_select: Optional[bool] = False):
-        super(GraphDataset).__init__()
-
-        with open(configs, 'r') as config_file:
-            cf = yaml.safe_load(config_file)
-            assert 'INPUTS' in cf.keys(), "Data group `INPUTS` must be provided."
-            assert 'LABELS' in cf.keys(), "Data group `LABELS` must be provided."
-
-            assert 'Objects' in cf['INPUTS'].keys(), "A list of `Objects` must be provided."
-            assert 'Features' in cf['INPUTS'].keys(), "A list of `Features` must be provided."
-            assert 'global' in cf['INPUTS'].keys(), "Event `global` must be provided."
-
-            self.objects = cf['INPUTS']['Objects']
-            self.node_features = list(cf['INPUTS']['Features'].keys())
-            self.node_scalings = list(cf['INPUTS']['Features'].values())
-            self.global_features = list(cf['INPUTS']['global'].keys())
-            self.global_scalings = list(cf['INPUTS']['global'].values())
-
-            self.edge_identifiers = np.apply_along_axis(
-                lambda x: 2**x, axis=0, arr=list(cf['LABELS']['Edges'].values())
-            ).sum(axis=1)
-            self.hyperedge_identifiers = np.apply_along_axis(
-                lambda x: 2**x, axis=0, arr=list(cf['LABELS']['Hyperedges'].values())
-            ).sum(axis=1)
-
-            try:
-                HE_ids = np.array(list(cf['LABELS']['Hyperedges'].values()))
-                self.hyperedge_order = HE_ids.shape[1]
-            except ValueError:
-                print("HyPER currently only support hyperedges with the same order.")
-
-        self.file_path = path
-        self.use_index_select = use_index_select
-
-        with h5py.File(self.file_path, 'r') as file:
-            # Check dataset
-            assert 'INPUTS' in file.keys(), "Data group `INPUTS` must be provided."
-            assert 'LABELS' in file.keys(), "Data group `LABELS` must be provided."
-
-            self.inputs = list(file['INPUTS'].keys())
-            self.labels = list(file['LABELS'].keys())
-
-            assert 'VertexID' in self.labels, "`VertexID` must be provided in the dataset."
-
-            assert set(self.objects).issubset(set(self.inputs)), "One or more `Objects` provided not found in the dataset."
-            g = groupby([file['INPUTS'][obj].dtype.fields.keys() for obj in self.objects])
-            assert next(g, True) and not next(g, False), "All provided node objects (`jet`, `electron` etc.) must have the same `numpy.dtype`, including the name of the features."
-            assert self.node_features == list(file['INPUTS'][self.objects[0]].dtype.fields.keys()), "Defined `Features` do not match the ones found in dataset, they must also be ordered."
-
-            assert 'global' in self.inputs, "`global` variables must be provided."
-            assert self.global_features == list(file['INPUTS']['global'].dtype.fields.keys()), "Defined `global` variables do not match the ones found in dataset, they must also be ordered."
-
-            if self.node_features[:4] != ['e', 'eta', 'phi', 'pt']:
-                warnings.warn("You are not using the standard feature ordering or the naming scheme: ['e', 'eta', 'phi', 'pt'] (for the first 4). This might cause problem in the edge computing stage.", UserWarning)
-
-            self.size = len(file['INPUTS'][self.objects[0]])
-
-            self.index_select = None
-            if 'IndexSelect' in file['LABELS']:
-                self.index_select = np.array(range(self.size))[np.array(file['LABELS']['IndexSelect'],dtype=np.int64)==1]
-                if self.use_index_select:
-                    self.size = len(self.index_select)
-            else:
-                if self.use_index_select:
-                    warnings.warn("`IndexSelect` not found in `LABELS`. No index selection will be made.")
-                    self.use_index_select = False
-
-
-    def get_node_feats(self, inputs_db, index):
-        r"""Get node features.
-
-        Args:
-            inputs_db: `INPUTS` data group in the h5 file.
-            index (int): event index.
-
-        :rtype: :class:`torch.tensor`
+        Construct node input tensor at :obj:`index` in the
+        :obj:`INPUTS` HDF5 data group.
         """
-        x = torch.concatenate(
-            [ torch.tensor(np.array(inputs_db[obj][index].tolist()),dtype=torch.float32) for obj in self.objects ],
+        x = torch.cat([
+                torch.cat([
+                    # Input Features
+                    torch.tensor(
+                        np.array(INPUTS[obj][index].tolist()),
+                        dtype=torch.float32
+                    ),
+                    # Assign an unique ID for each input object
+                    torch.full(
+                        (self.input_pad_size[obj], 1),
+                        self.input_id[obj], 
+                        dtype=torch.float32
+                    )
+                ], dim=1)
+            for obj in self.node_input_names],
             dim=0
         )
-        return x[x[:,-1]!=0]
+        return x[torch.any(x.isnan(),dim=1)==False]
 
-    def get_edge_feats(self, x: Tensor) -> Tuple[Tensor,Tensor]:
-        r"""Build a fully connected graph, and get edge feature and index tensors.
+    def edge_attributes(
+        self,
+        x: Tensor
+    ) -> Tuple[Tensor,Tensor]:
+        """
+        Construct edge input tensor assuming a fully connected
+        di-graph using pre-existing node input tensor :obj:`x`.
 
-        Args:
-            x (torch.tensor): node feature tensor.
-
-        :rtype: :class:`Tuple[torch.tensor,torch.tensor]`
+        Note:
+            `HyPERDataset` assumes the first four features describles
+            four-momentum. This means the first four features are 
+            expected to be ordered, either:
+                (E, \eta, \phi, p_T) or (E, p_x, p_y, p_z).
+            To learn more how four-momentum are calculated, see
+            https://github.com/tzuhanchang/pytorch_hep
         """
         num_nodes = x.size(dim=0)
-        edge_index = torch.tensor(list(permutations(range(num_nodes),r=2)),dtype=torch.int64).permute(dims=(1,0))
+        edge_index = torch.tensor(
+            list(permutations(range(num_nodes), r=2)),
+            dtype=torch.int64
+        ).permute(dims=(1,0))
 
-        edge_i = MomentumTensor.EEtaPhiPt(x[:,0:4].index_select(0, index=edge_index[0]))
-        edge_j = MomentumTensor.EEtaPhiPt(x[:,0:4].index_select(0, index=edge_index[1]))
+        if self._use_EEtaPhiPt:
+            edge_i = MomentumTensor.EEtaPhiPt(
+                x[:,0:4].index_select(0, index=edge_index[0]))
+            edge_j = MomentumTensor.EEtaPhiPt(
+                x[:,0:4].index_select(0, index=edge_index[1]))
+        if self._use_EPxPyPz:
+            edge_i = MomentumTensor(
+                x[:,0:4].index_select(0, index=edge_index[0]))
+            edge_j = MomentumTensor(
+                x[:,0:4].index_select(0, index=edge_index[1]))
 
-        # Get edge embedding
-        embedding = EdgeEmbedding(edge_i, edge_j)
-        edge_attr = torch.concatenate(
-            [ embedding.dEta(), embedding.dPhi(), embedding.dR(), embedding.M() ],
+        dEta = edge_i.eta - edge_j.eta
+        dPhi = torch.arctan2(
+            torch.sin(edge_i.phi-edge_j.phi),
+            torch.cos(edge_i.phi-edge_j.phi))
+
+        edge_attr = torch.cat([
+            dEta, dPhi,
+            torch.sqrt((dEta)**2+(dPhi)**2),
+            (edge_i + edge_j).m],
             dim=1
         )
-        return edge_attr, edge_index
+        return edge_index, edge_attr
 
-    def get_global_feats(self, inputs_db, index: int) -> Tensor:
-        r"""Get global features.
-
-        Args:
-            inputs_db: `INPUTS` data group in the h5 file.
-            index (int): event index.
-
-        :rtype: :class:`torch.tensor`
+    def global_attributes(
+        self,
+        INPUTS: h5py._hl.group.Group,
+        index: int
+    ) -> Tensor:
         """
-        return torch.tensor(np.array(inputs_db['global'][index].tolist()),dtype=torch.float32)
-
-    def get_VertexID(self, labels_db, index: int) -> Tensor:
-        r"""Get object IDs.
-
-        Args:
-            labels_db: `LABELS` data group in the h5 file.
-            index (int): event index.
-
-        :rtype: :class:`torch.tensor`
+        Construct global input tensor at :obj:`index` in the
+        :obj:`INPUTS` HDF5 data group.
         """
-        ids = torch.tensor(np.array(labels_db['VertexID'][index]), dtype=torch.float32)
-        return ids[ids!=-9].reshape(-1,1)
+        return torch.tensor(np.array(INPUTS['GLOBAL'][index].tolist()),
+                    dtype=torch.float32)
 
-    def get_edge_labels(
+    def hyperedge_index(self, x: Tensor) -> Tensor:
+        """
+        Construct hyperedge index tensor.
+        """
+        num_nodes = x.size(0)
+        return torch.tensor(list(combinations(range(num_nodes),
+            r=self.hyperedge_order)),dtype=torch.int64).permute(dims=(1,0))
+
+    def node_ids(
+        self,
+        LABELS: h5py._hl.group.Group,
+        index: int
+    ) -> Tensor:
+        """
+        Assign an unique ID for all nodes.
+
+        Note:
+            The unique ID is created using the Cantor pairing 
+            function:
+            .. math::
+                \pi(k_1,k_2) = \frac{1}{2}(k_1+k_2)(k_1+k_2+1)+k_2
+            where k_1 is the `input_id` and k_2 is the `node_id`.
+        """
+        k1 = torch.cat([
+            # Input IDs
+            torch.full(
+                (self.input_pad_size[obj], 1),
+                self.input_id[obj], 
+                dtype=torch.float32
+            )
+            for obj in self.node_input_names],
+            dim=0
+        )
+        k2 = torch.cat([
+            # Node labels
+            torch.tensor(
+                np.array(LABELS[obj][index].tolist()),
+                dtype=torch.float32
+            )
+            for obj in self.node_input_names],
+            dim=0
+        )
+        pi = (k1+k2)*(k1+k2+1)/2 + k2
+        return pi[pi.isnan()==False]
+
+    def edge_labels(
         self,
         edge_index: Tensor,
-        VertexID: Tensor
+        node_ids: Tensor
     ) -> Tensor:
-        r"""Get edge labels.
-
-        Args:
-            edge_index (torch.tensor): edge indices.
-            VertexID (torch.tensor): node types.
-
-        :rtype: :class:`torch.tensor`
         """
-        endpoints_ids = torch.concatenate([2**VertexID.index_select(0,index=edge_index[0]), 2**VertexID.index_select(0,index=edge_index[1])],dim=1).sum(dim=1)
-        target_idx = torch.concatenate(
-            [ torch.argwhere(endpoints_ids==id) for id in self.edge_identifiers ]
-        ).squeeze()
-        # Scatter the edge labels in a empty tensor
-        return torch.zeros(endpoints_ids.size(), dtype=torch.float32).scatter(dim=0, index=target_idx, src=torch.full(target_idx.size(), 1, dtype=torch.float32)).reshape(-1,1)
+        Construct edge labels based on the :obj:`self.target_edge_ids` uniquely
+        assigned to each node.
+        """
+        edge_attr_t = torch.zeros((edge_index.size(1),1), dtype=torch.float32)
 
-    def get_hyperedge_labels(
+        edge_index_id_filled = torch.cat([
+            node_ids.index_select(0,edge_index[i]).unsqueeze(0) 
+            for i in range(edge_index.size(0))],dim=0)
+
+        for targets in self.target_edge_ids:
+            edge_index_decision = torch.full(edge_index_id_filled.shape,
+                False, dtype=torch.bool)
+            for endpoint in targets:
+                edge_index_decision += (edge_index_id_filled == endpoint)
+            edge_attr_t[torch.argwhere(torch.all(
+                edge_index_decision==True, dim=0)==True)] = 1
+        return edge_attr_t
+
+    def hyperedge_labels(
         self,
-        VertexID: Tensor
+        hyperedge_index: Tensor,
+        node_ids: Tensor
     ) -> Tensor:
-        r"""Get hyperedge labels.
-
-        Args:
-            VertexID (torch.tensor): node types.
-            identifiers (List): integer hyperedge identification value.
-
-        :rtype: :class:`torch.tensor`
         """
-        num_nodes = VertexID.size(dim=0)
-        hyperedge_index = torch.tensor(list(combinations(range(num_nodes),r=self.hyperedge_order)),dtype=torch.int64).permute(dims=(1,0))
+        Construct edge labels based on the :obj:`self.target_hyperedge_ids` uniquely
+        assigned to each node.
+        """
+        hyperedge_attr_t = torch.zeros((hyperedge_index.size(1),1), dtype=torch.float32)
 
-        endpoints_ids = torch.concatenate(
-            [ 2**VertexID.index_select(0, index=hyperedge_index[row]) for row in range(self.hyperedge_order) ],
-            dim=1
-        ).sum(dim=1)
-        target_idx = torch.concatenate(
-            [ torch.argwhere(endpoints_ids==id) for id in self.hyperedge_identifiers ]
-        ).squeeze()
+        hyperedge_index_id_filled = torch.cat([
+            node_ids.index_select(0,hyperedge_index[i]).unsqueeze(0) 
+            for i in range(hyperedge_index.size(0))],dim=0)
 
-        hyperegde_t = torch.zeros(endpoints_ids.size(), dtype=torch.float32).scatter(dim=0, index=target_idx, src=torch.full(target_idx.size(), 1, dtype=torch.float32)).reshape(-1,1)
-        return hyperegde_t, hyperedge_index
+        for targets in self.target_hyperedge_ids:
+            hyperedge_index_decision = torch.full(hyperedge_index_id_filled.shape,
+                False, dtype=torch.bool)
+            for endpoint in targets:
+                hyperedge_index_decision += (hyperedge_index_id_filled == endpoint)
+            hyperedge_attr_t[torch.argwhere(torch.all(
+                hyperedge_index_decision==True, dim=0)==True)] = 1
+        return hyperedge_attr_t
 
-    def scale_features(self, src: Tensor, scaling_methods: List):
-        for feature_idx in range(len(scaling_methods)):
-            if scaling_methods[feature_idx].lower() == "log":
-                src[:,feature_idx] = torch.log(src[:,feature_idx])
-            elif scaling_methods[feature_idx].lower() == "pi":
-                src[:,feature_idx] = src[:,feature_idx]/torch.pi
-            elif re.search(r'\d+', scaling_methods[feature_idx].lower()):
-                src[:,feature_idx] = src[:,feature_idx]/int(re.search(r'\d+', scaling_methods[feature_idx].lower()).group())
-            elif scaling_methods[feature_idx].lower() == "none":
-                pass
-            else:
-                warnings.warn("%s is not available, scale is not applied.. Available methods are: `log`, `pi` (divide by pi), `dN` (divide by N) and `none`."%(scaling_methods[feature_idx]))
-        return src
+    def target_ids(self) -> Tuple[List,List]:
+        """
+        Assign each edge/hyperedge target with an unique ID.
+        """
+        target_edge_ids = []
+        if len(self.edge_targets) != 0:
+            for target in self.edge_targets:
+                tmp = []
+                for label in target:
+                    k1, k2 = label.split('-')
+                    k1, k2 = int(k1), int(k2)
+                    tmp.append((k1+k2)*(k1+k2+1)/2 + k2)
+                target_edge_ids.append(tmp)
+        target_hyperedge_ids = []
+        if len(self.hyperedge_targets) != 0:
+            for target in self.hyperedge_targets:
+                tmp = []
+                for label in target:
+                    k1, k2 = label.split('-')
+                    k1, k2 = int(k1), int(k2)
+                    tmp.append((k1+k2)*(k1+k2+1)/2 + k2)
+                target_hyperedge_ids.append(tmp)
+        return target_edge_ids, target_hyperedge_ids
 
-    def __getitem__(self, index) -> Tensor:
-        with h5py.File(self.file_path, 'r') as file:
-            if self.use_index_select:
-                index = self.index_select[index]
+    def process(self) -> None:
+        # temporary settings
+        self.node_input_names = ['JET']
+        self.input_id = {'JET':0}
+        self.input_pad_size = {'JET':20}
+        self.edge_targets = [['0-2','0-3'],['0-5','0-6']]
+        self.hyperedge_targets = [['0-1','0-2','0-3'],['0-4','0-5','0-6']]
+        self._use_EEtaPhiPt = True
+        self._use_EPxPyPz = False
 
-            x = self.get_node_feats(file['INPUTS'], index)
-            u = self.get_global_feats(file['INPUTS'], index)
-            VertexID = self.get_VertexID(file['LABELS'], index)
+        self.hyperedge_order = 3
+        self.target_edge_ids, self.target_hyperedge_ids = self.target_ids()
 
-        edge_attr, edge_index = self.get_edge_feats(x)
-        edge_attr_t = self.get_edge_labels(edge_index, VertexID)
-        x_t, hyperedge_index = self.get_hyperedge_labels(VertexID)
+        """
+        Process all raw files in the `raw_dir`. This is only done 
+        once unless `force_reload=True` is set.
+        """
+        # Loop through files
+        for i in range(len(self.raw_file_names)):
+            raw_file_name = self.raw_file_names[i]
+            data_list = []
+            # Open the HDF5 file
+            with h5py.File(osp.join(self.raw_dir, raw_file_name),
+                'r') as file:
+                num_entries = len(file['INPUTS/GLOBAL'])
+                # Loop through events
+                for j in tqdm(range(num_entries),
+                              desc=f"File {raw_file_name}",
+                              unit="events"):
+                    # Constructing node input tensor
+                    x = self.node_attributes(file['INPUTS'], j)
+                    # Constructing edge input tensor
+                    edge_index, edge_attr = self.edge_attributes(x)
+                    # Constructing global input tensor
+                    u = self.global_attributes(file['INPUTS'], j)
+                    # Constructing hyperedge index tensor
+                    hyperedge_index = self.hyperedge_index(x)
+                    # Assign unique target ids
+                    ids = self.node_ids(file['LABELS'], j)
+                    # Constructing edge label tensor
+                    edge_attr_t = self.edge_labels(edge_index, ids)
+                    # Constructing hyperedge label tensor
+                    hyperedge_attr_t = self.hyperedge_labels(hyperedge_index, ids)
 
-        x = self.scale_features(x, scaling_methods=self.node_scalings)
-        u = self.scale_features(u, scaling_methods=self.global_scalings)
-        edge_attr = self.scale_features(edge_attr, scaling_methods=['none','none','none','log'])
+                    data_list.append(Data(x=x,
+                                          edge_index=edge_index,
+                                          edge_attr=edge_attr,
+                                          u=u,
+                                          hyperedge_index=hyperedge_index,
+                                          edge_attr_t=edge_attr_t,
+                                          hyperedge_attr_t=hyperedge_attr_t))
 
-        return Data(x_s=x, num_nodes=x.size(dim=0), edge_attr_s=edge_attr, edge_index=edge_index, edge_index_h=hyperedge_index, u_s=u, edge_attr_t=edge_attr_t, x_t=x_t)
+            if self.pre_filter is not None:
+                data_list = [data for data in data_list if self.pre_filter(data)]
 
-    def __len__(self):
-        return self.size
+            if self.pre_transform is not None:
+                data_list = [self.pre_transform(data) for data in data_list]
+
+            self.save(data_list, self.processed_paths[i])
