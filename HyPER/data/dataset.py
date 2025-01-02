@@ -67,12 +67,14 @@ class HyPERDataset(InMemoryDataset):
                 [lambda x: x, lambda x: x, lambda x: x, lambda x: torch.log(x)]
             ])
         if self.config['input']['pre_transform']:
+            print("`pre_transform` is turned on.")
             pre_transform = transforms
         else:
             transform = transforms 
 
         # Check if filter is requested
         if 'filter' in self.config.keys():
+            print("`pre_filter` is turned on.")
             pre_filter = TargetConnectivityFilter(
                 num_edge_targets=self.config['filter']['num_edges'],
                 num_hyperedge_targets=self.config['filter']['num_hyperedge'])

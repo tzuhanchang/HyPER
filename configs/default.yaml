@@ -1,10 +1,9 @@
+dataset:          null
 train_set:        null
 val_set:          null
-db_config:        "db.yaml"
 train_val_split:  0.9
-all_matched:      True
 max_n_events:     -1
-drop_last:        True
+drop_last:        False
 
 num_message_layers:   3
 hyperedge_order:      3
@@ -25,7 +24,6 @@ batch_size:   4096
 
 device:       "gpu"
 num_devices:   1
-num_workers:  12
 
 savedir: "HyPER_logs"
 continue_from_ckpt: null

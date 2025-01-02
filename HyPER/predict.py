@@ -21,15 +21,14 @@ def Predict(cfg : DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     datamodule = HyPERDataModule(
-        db_config = cfg['db_config'],
+        root = cfg['dataset'],
         train_set = None,
         val_set = None,
         predict_set = cfg['predict_set'],
         batch_size = cfg['batch_size'],
         percent_valid_samples = 1 - float(cfg['train_val_split']),
-        num_workers = cfg['num_workers'],
         pin_memory = True if cfg['device'] == "gpu" else False,
-        all_matched = False
+        drop_last = False
     )
 
     # Map location
