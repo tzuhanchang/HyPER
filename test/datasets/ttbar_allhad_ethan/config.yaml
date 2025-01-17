@@ -1,0 +1,35 @@
+input:
+  nodes: # of form {Node type: enum}
+    JET: 1
+  padding: # do we need padding? 
+    Jet: 20
+  node_features: 
+    - e
+    - eta
+    - phi 
+    - pt 
+    - btag
+  node_transforms: 
+    - torch.log(x)
+    - x
+    - x
+    - torch.log(x)
+    - x
+  # edge_features:
+  #   - delta_m
+  #   - delta_r
+  global_features: 
+    - njet
+    - nbTagged
+  global_transforms: 
+    - x/6
+    - x/2
+  pre_transform: "True"
+
+target:
+  edge: 
+    w1: ['0-2','0-3']
+    w2: ['0-5','0-6']
+  hyperedge: 
+    t1: ['0-1','0-2','0-3']
+    t2: ['0-4','0-5','0-6']
