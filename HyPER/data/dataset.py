@@ -38,26 +38,12 @@ class HyPERDataset(InMemoryDataset):
 
         parsed_inputs = HyPERDataset.parse_config_file(f"{self.root}/config.yaml")
         
-        self.node_input_names   = parsed_inputs['input']['names']
-        self.input_id           = parsed_inputs['input']['ids']
+        self.node_input_names   = list(parsed_inputs['input']['nodes'].keys())
+        self.input_id           = parsed_inputs['input']['nodes']
         self.input_pad_size     = parsed_inputs['input']['padding']
-        self.edge_targets       = parsed_inputs['target']['edge']
-        self.hyperedge_targets  = parsed_inputs['target']['hyperedge']
-        # prinx
-
-
-        # self.node_input_names = self.config['input']['names']
-        # self.input_id        = self.config['input']['ids']
-        # self.input_pad_size = self.config['input']['padding']
-        # self.edge_targets = self.config['target']['edge']
-        # self.hyperedge_targets = self.config['target']['hyperedge']
-        
-        # print(self.edge_targets)
-        # print(self.hyperedge_targets)
-        # input()
+        self.edge_targets       = list(parsed_inputs['target']['edge'].values())
+        self.hyperedge_targets  = list(parsed_inputs['target']['hyperedge'].values())
         self.hyperedge_order = len(self.hyperedge_targets[0])
-        print(self.hyperedge_order)
-        input()
         self.target_edge_ids, self.target_hyperedge_ids = self.target_ids()
 
         # Check 4-momentum inputs
@@ -89,11 +75,11 @@ class HyPERDataset(InMemoryDataset):
             transform = transforms 
 
         # Check if filter is requested
-        if 'filter' in self.config.keys():
+        if 'filter' in parsed_inputs.keys():
             print("`pre_filter` is turned on.")
             pre_filter = TargetConnectivityFilter(
-                num_edge_targets=self.config['filter']['num_edges'],
-                num_hyperedge_targets=self.config['filter']['num_hyperedge'])
+                num_edge_targets=parsed_inputs['filter']['num_edges'],
+                num_hyperedge_targets=parsed_inputs['filter']['num_hyperedge'])
 
         super().__init__(root, transform, pre_transform, pre_filter,
                          force_reload=force_reload)
