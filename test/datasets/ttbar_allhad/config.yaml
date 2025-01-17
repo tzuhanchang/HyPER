@@ -1,0 +1,12 @@
+input:
+  names: "['JET']"
+  ids: "{'JET':0}"
+  padding: "{'JET':20}"
+  node_features: "['e','eta','phi','pt','btag']"
+  node_transforms: "[lambda x: torch.log(x), lambda x: x, lambda x: x, lambda x: torch.log(x), lambda x: x]"
+  global_features: "['njet', 'nbTagged']"
+  global_transforms: "[lambda x: x/6, lambda x: x/2]"
+  pre_transform: "True"
+target:
+  edge: "[['0-2','0-3'],['0-5','0-6']]"
+  hyperedge: "[['0-1','0-2','0-3'],['0-4','0-5','0-6']]"
