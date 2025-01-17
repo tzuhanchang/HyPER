@@ -61,13 +61,25 @@ class HyPERDataset(InMemoryDataset):
                 UserWarning)
             self._use_EPxPyPz = True
 
-        # Check if feature transformation is requested
+        node_transforms   = [eval(f"lambda x: {f}") for f in parsed_inputs['input']['node_transforms']]
+        global_transforms = [eval(f"lambda x: {f}") for f in parsed_inputs['input']['global_transforms']]
+
         transforms = TransformFeatures(["x", "u", "edge_attr"],
             transforms=[
-                parsed_inputs['input']['node_transforms'],
-                parsed_inputs['input']['global_transforms'],
+                node_transforms,
+                global_transforms,
                 [lambda x: x, lambda x: x, lambda x: x, lambda x: torch.log(x)]
             ])
+        
+
+        # Check if feature transformation is requested
+        # transforms = TransformFeatures(["x", "u", "edge_attr"],
+        #     transforms=[
+        #         parsed_inputs['input']['node_transforms'],
+        #         parsed_inputs['input']['global_transforms'],
+        #         [lambda x: x, lambda x: x, lambda x: x, lambda x: torch.log(x)]
+        #     ])
+        
         if parsed_inputs['input']['pre_transform']:
             print("`pre_transform` is turned on.")
             pre_transform = transforms
@@ -92,16 +104,7 @@ class HyPERDataset(InMemoryDataset):
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        
 
-    # @property
-    # def config(self) -> dict:
-    #     with open(osp.join(self.root, 'config.yaml'), "r") as f:
-    #         config = yaml.load(f, Loader=yaml.SafeLoader)
-    #     for key_lv1, value_lv1 in config.items():
-    #         for key_lv2, value_lv2 in value_lv1.items():
-    #             config[key_lv1][key_lv2] = eval(value_lv2)
-    #     return config
 
     @property
     def raw_dir(self) -> str:
@@ -170,25 +173,31 @@ class HyPERDataset(InMemoryDataset):
         ).permute(dims=(1,0))
 
         if self._use_EEtaPhiPt:
-            edge_i = MomentumTensor.EEtaPhiPt(
+            node_i = MomentumTensor.EEtaPhiPt(
                 x[:,0:4].index_select(0, index=edge_index[0]))
-            edge_j = MomentumTensor.EEtaPhiPt(
+            node_j = MomentumTensor.EEtaPhiPt(
                 x[:,0:4].index_select(0, index=edge_index[1]))
         if self._use_EPxPyPz:
-            edge_i = MomentumTensor(
+            node_i = MomentumTensor(
                 x[:,0:4].index_select(0, index=edge_index[0]))
-            edge_j = MomentumTensor(
+            node_j = MomentumTensor(
                 x[:,0:4].index_select(0, index=edge_index[1]))
 
-        dEta = edge_i.eta - edge_j.eta
+        dEta = node_i.eta - node_j.eta
         dPhi = torch.arctan2(
-            torch.sin(edge_i.phi-edge_j.phi),
-            torch.cos(edge_i.phi-edge_j.phi))
+            torch.sin(node_i.phi-node_j.phi),
+            torch.cos(node_i.phi-node_j.phi))
+        dR  = torch.sqrt((dEta)**2+(dPhi)**2)
+        kT  = torch.min(node_i.pt,node_j.pt)*dR
+        M2  = (node_i + node_j).m
+
+        # Here could select the edge features based on input information
 
         edge_attr = torch.cat([
             dEta, dPhi,
             torch.sqrt((dEta)**2+(dPhi)**2),
-            (edge_i + edge_j).m],
+            torch.min(node_i.pt,node_j.pt)*torch.sqrt((dEta)**2+(dPhi)**2), # Definition of k_t
+            (node_i + node_j).m],
             dim=1
         )
         return edge_index, edge_attr
