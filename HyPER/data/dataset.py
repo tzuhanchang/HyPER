@@ -36,11 +36,24 @@ class HyPERDataset(InMemoryDataset):
         assert len(file_index) == 1
         self.file_index = file_index[0]
 
-        self.node_input_names = self.config['input']['names']
-        self.input_id = self.config['input']['ids']
-        self.input_pad_size = self.config['input']['padding']
-        self.edge_targets = self.config['target']['edge']
-        self.hyperedge_targets = self.config['target']['hyperedge']
+        parsed_inputs = self.parse_config_file(f"{self.root}/config.yaml")
+        
+        self.node_input_names   = parsed_inputs['input']['names']
+        self.input_id           = parsed_inputs['input']['ids']
+        self.input_pad_size     = parsed_inputs['input']['padding']
+        self.edge_targets       = parsed_inputs['target']['edge']
+        self.hyperedge_targets  = parsed_inputs['target']['hyperedge']
+
+
+        # self.node_input_names = self.config['input']['names']
+        # self.input_id        = self.config['input']['ids']
+        # self.input_pad_size = self.config['input']['padding']
+        # self.edge_targets = self.config['target']['edge']
+        # self.hyperedge_targets = self.config['target']['hyperedge']
+        
+        print(self.edge_targets)
+        print(self.hyperedge_targets)
+        input()
         self.hyperedge_order = len(self.hyperedge_targets[0])
         self.target_edge_ids, self.target_hyperedge_ids = self.target_ids()
 
@@ -83,14 +96,23 @@ class HyPERDataset(InMemoryDataset):
                          force_reload=force_reload)
         self.load(self.processed_paths[self.file_index])
 
-    @property
-    def config(self) -> dict:
-        with open(osp.join(self.root, 'config.yaml'), "r") as f:
-            config = yaml.load(f, Loader=yaml.SafeLoader)
-        for key_lv1, value_lv1 in config.items():
-            for key_lv2, value_lv2 in value_lv1.items():
-                config[key_lv1][key_lv2] = eval(value_lv2)
-        return config
+    @staticmethod
+    def parse_config_file(filename):
+        with open(filename) as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+        
+
+    # @property
+    # def config(self) -> dict:
+    #     with open(osp.join(self.root, 'config.yaml'), "r") as f:
+    #         config = yaml.load(f, Loader=yaml.SafeLoader)
+    #     for key_lv1, value_lv1 in config.items():
+    #         for key_lv2, value_lv2 in value_lv1.items():
+    #             config[key_lv1][key_lv2] = eval(value_lv2)
+    #     return config
 
     @property
     def raw_dir(self) -> str:
