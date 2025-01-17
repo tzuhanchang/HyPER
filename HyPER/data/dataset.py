@@ -43,6 +43,7 @@ class HyPERDataset(InMemoryDataset):
         self.input_pad_size     = parsed_inputs['input']['padding']
         self.edge_targets       = parsed_inputs['target']['edge']
         self.hyperedge_targets  = parsed_inputs['target']['hyperedge']
+        # prinx
 
 
         # self.node_input_names = self.config['input']['names']
@@ -55,6 +56,8 @@ class HyPERDataset(InMemoryDataset):
         # print(self.hyperedge_targets)
         # input()
         self.hyperedge_order = len(self.hyperedge_targets[0])
+        print(self.hyperedge_order)
+        input()
         self.target_edge_ids, self.target_hyperedge_ids = self.target_ids()
 
         # Check 4-momentum inputs
