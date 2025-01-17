@@ -36,7 +36,7 @@ class HyPERDataset(InMemoryDataset):
         assert len(file_index) == 1
         self.file_index = file_index[0]
 
-        parsed_inputs = self.parse_config_file(f"{self.root}/config.yaml")
+        parsed_inputs = HyPERDataset.parse_config_file(f"{self.root}/config.yaml")
         
         self.node_input_names   = parsed_inputs['input']['names']
         self.input_id           = parsed_inputs['input']['ids']
@@ -51,18 +51,18 @@ class HyPERDataset(InMemoryDataset):
         # self.edge_targets = self.config['target']['edge']
         # self.hyperedge_targets = self.config['target']['hyperedge']
         
-        print(self.edge_targets)
-        print(self.hyperedge_targets)
-        input()
+        # print(self.edge_targets)
+        # print(self.hyperedge_targets)
+        # input()
         self.hyperedge_order = len(self.hyperedge_targets[0])
         self.target_edge_ids, self.target_hyperedge_ids = self.target_ids()
 
         # Check 4-momentum inputs
         self._use_EEtaPhiPt = False
         self._use_EPxPyPz = False
-        if self.config['input']['node_features'][:4] == ['e','eta','phi','pt']:
+        if parsed_inputs['input']['node_features'][:4] == ['e','eta','phi','pt']:
             self._use_EEtaPhiPt = True
-        elif self.config['input']['node_features'][:4] == ['e','px','py','pz']:
+        elif parsed_inputs['input']['node_features'][:4] == ['e','px','py','pz']:
             self._use_EPxPyPz = True
         else:
             warn("You are not using the standard feature ordering " \
@@ -75,11 +75,11 @@ class HyPERDataset(InMemoryDataset):
         # Check if feature transformation is requested
         transforms = TransformFeatures(["x", "u", "edge_attr"],
             transforms=[
-                self.config['input']['node_transforms'],
-                self.config['input']['global_transforms'],
+                parsed_inputs['input']['node_transforms'],
+                parsed_inputs['input']['global_transforms'],
                 [lambda x: x, lambda x: x, lambda x: x, lambda x: torch.log(x)]
             ])
-        if self.config['input']['pre_transform']:
+        if parsed_inputs['input']['pre_transform']:
             print("`pre_transform` is turned on.")
             pre_transform = transforms
         else:
