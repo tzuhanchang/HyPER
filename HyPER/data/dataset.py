@@ -17,6 +17,10 @@ from .filter import TargetConnectivityFilter
 
 
 class HyPERDataset(InMemoryDataset):
+    
+    """
+    HyPERDataset is loaded into memory
+    """
     def __init__(
         self,
         root: str,
@@ -26,6 +30,7 @@ class HyPERDataset(InMemoryDataset):
         pre_filter: Optional[Callable] = None,
         force_reload: bool = False,
     ) -> None:
+        
         self.root = root
         self.name = name
         self.names = [
@@ -36,6 +41,7 @@ class HyPERDataset(InMemoryDataset):
         assert len(file_index) == 1
         self.file_index = file_index[0]
 
+        # Parse database config file, setting instance attributes
         parsed_inputs = HyPERDataset.parse_config_file(f"{self.root}/config.yaml")
         
         self.node_input_names   = list(parsed_inputs['input']['nodes'].keys())
@@ -61,6 +67,10 @@ class HyPERDataset(InMemoryDataset):
                 UserWarning)
             self._use_EPxPyPz = True
 
+
+        # Parse edge features
+        self.edge_features_to_use, edge_transforms = self.parse_edge_features(parsed_inputs)
+        
         node_transforms   = [eval(f"lambda x: {f}") for f in parsed_inputs['input']['node_transforms']]
         global_transforms = [eval(f"lambda x: {f}") for f in parsed_inputs['input']['global_transforms']]
 
@@ -68,17 +78,8 @@ class HyPERDataset(InMemoryDataset):
             transforms=[
                 node_transforms,
                 global_transforms,
-                [lambda x: x, lambda x: x, lambda x: x, lambda x: torch.log(x)]
+                edge_transforms
             ])
-        
-
-        # Check if feature transformation is requested
-        # transforms = TransformFeatures(["x", "u", "edge_attr"],
-        #     transforms=[
-        #         parsed_inputs['input']['node_transforms'],
-        #         parsed_inputs['input']['global_transforms'],
-        #         [lambda x: x, lambda x: x, lambda x: x, lambda x: torch.log(x)]
-        #     ])
         
         if parsed_inputs['input']['pre_transform']:
             print("`pre_transform` is turned on.")
@@ -96,6 +97,30 @@ class HyPERDataset(InMemoryDataset):
         super().__init__(root, transform, pre_transform, pre_filter,
                          force_reload=force_reload)
         self.load(self.processed_paths[self.file_index])
+        
+        
+    def parse_edge_features(self,parsed_inputs):
+        all_edge_feature_names = {"delta_eta": lambda x: x,
+                                  "delta_phi": lambda x: x,
+                                  "delta_R"  : lambda x: x,
+                                  "kT"       : lambda x: torch.log(x),
+                                  "z"        : lambda x: torch.log(x),
+                                  "m2"       : lambda x: torch.log(x)}
+        
+        if "edge_features" in parsed_inputs["input"]:
+            requested_features  = set(parsed_inputs["input"]["edge_features"])
+            HyPER_edge_features = set(all_edge_feature_names.keys())
+            
+            edge_features_to_use = list(HyPER_edge_features & requested_features)
+            if len(requested_features - HyPER_edge_features) !=0:
+                warn("Edge feature specified which is not in known HyPER edge features" , UserWarning)
+            edge_transforms = [all_edge_feature_names[k] for k in edge_features_to_use]
+        else:
+            edge_features_to_use = list(all_edge_feature_names.keys())
+            edge_transforms = list(all_edge_feature_names.values())    
+            
+        return edge_features_to_use , edge_transforms
+    
 
     @staticmethod
     def parse_config_file(filename):
@@ -183,23 +208,28 @@ class HyPERDataset(InMemoryDataset):
             node_j = MomentumTensor(
                 x[:,0:4].index_select(0, index=edge_index[1]))
 
+        # Compute all 
         dEta = node_i.eta - node_j.eta
         dPhi = torch.arctan2(
             torch.sin(node_i.phi-node_j.phi),
             torch.cos(node_i.phi-node_j.phi))
         dR  = torch.sqrt((dEta)**2+(dPhi)**2)
         kT  = torch.min(node_i.pt,node_j.pt)*dR
+        Z_edge   = torch.min(node_i.pt,node_j.pt)/(node_i.pt + node_j.pt)
         M2  = (node_i + node_j).m
 
-        # Here could select the edge features based on input information
-
-        edge_attr = torch.cat([
-            dEta, dPhi,
-            torch.sqrt((dEta)**2+(dPhi)**2),
-            torch.min(node_i.pt,node_j.pt)*torch.sqrt((dEta)**2+(dPhi)**2), # Definition of k_t
-            (node_i + node_j).m],
-            dim=1
-        )
+        computed_edge_features = {
+            "dEta": dEta,
+            "dPhi": dPhi,
+            "dR": dR,
+            "kT": kT,
+            "Z_edge": Z_edge,
+            "M2": M2
+        }
+        
+        required_edge_features = [computed_edge_features[k] for k in self.edge_features_to_use]
+        edge_attr = torch.cat([required_edge_features],dim=1)
+        
         return edge_index, edge_attr
 
     def global_attributes(
