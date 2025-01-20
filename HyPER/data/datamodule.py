@@ -64,21 +64,22 @@ class HyPERDataModule(LightningDataModule):
         self.max_n_events = max_n_events
         self.persistent_workers    = persistent_workers
         self.percent_valid_samples = percent_valid_samples
-
-        self.node_in_channels = len(self.config['input']['node_features']) + 1
-        self.edge_in_channels = 4
-        self.global_in_channels = len(self.config['input']['global_features'])
+        
+        # Would prefer if these were either read directly from HyPERDataset or 
+        parsed_inputs = HyPERDataset.parse_config_file(f"{self.root}/config.yaml")
+        self.node_in_channels   = len(parsed_inputs['input']['node_features']) + 1
+        self.edge_in_channels   = len(parsed_inputs['input']['edge_features'])
+        self.global_in_channels = len(parsed_inputs['input']['global_features'])
 
         self.index_range = None
-
-    @property
-    def config(self) -> dict:
-        with open(osp.join(self.root, 'config.yaml'), "r") as f:
-            config = yaml.load(f, Loader=yaml.SafeLoader)
-        for key_lv1, value_lv1 in config.items():
-            for key_lv2, value_lv2 in value_lv1.items():
-                config[key_lv1][key_lv2] = eval(value_lv2)
-        return config
+    
+    @staticmethod
+    def parse_config_file(filename):
+        with open(filename) as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
 
     def setup(self, stage: str):
         """
@@ -97,6 +98,9 @@ class HyPERDataModule(LightningDataModule):
             else:
                 self.train_data = HyPERDataset(root=self.root, name=self.train_set)
                 self.val_data   = HyPERDataset(root=self.root, name=self.val_set)
+                
+            print(self.train_data.__dict__)
+            input()
 
             # Limit training dataset size to self.max_n_events
             if self.max_n_events == -1:
