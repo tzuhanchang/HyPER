@@ -15,9 +15,11 @@ input:
     - x
     - torch.log(x)
     - x
-  # edge_features:
-  #   - delta_m
-  #   - delta_r
+  edge_features:
+    - delta_eta
+    - delta_phi
+    - delta_R
+    - M2
   global_features: 
     - njet
     - nbTagged
@@ -33,3 +35,6 @@ target:
   hyperedge: 
     t1: ['0-1','0-2','0-3']
     t2: ['0-4','0-5','0-6']
+# process:
+#   4tops: 1
+#   3tops: 2

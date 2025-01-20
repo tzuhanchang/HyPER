@@ -100,12 +100,17 @@ class HyPERDataset(InMemoryDataset):
         
         
     def parse_edge_features(self,parsed_inputs):
+        
+        """
+        User selects from set of pre-defined edge features
+        Must select the appropriate transforms too
+        """
         all_edge_feature_names = {"delta_eta": lambda x: x,
                                   "delta_phi": lambda x: x,
                                   "delta_R"  : lambda x: x,
                                   "kT"       : lambda x: torch.log(x),
-                                  "z"        : lambda x: torch.log(x),
-                                  "m2"       : lambda x: torch.log(x)}
+                                  "Z"        : lambda x: torch.log(x),
+                                  "M2"       : lambda x: torch.log(x)}
         
         if "edge_features" in parsed_inputs["input"]:
             requested_features  = set(parsed_inputs["input"]["edge_features"])
@@ -121,7 +126,6 @@ class HyPERDataset(InMemoryDataset):
             
         return edge_features_to_use , edge_transforms
     
-
     @staticmethod
     def parse_config_file(filename):
         with open(filename) as stream:
@@ -129,7 +133,6 @@ class HyPERDataset(InMemoryDataset):
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-
 
     @property
     def raw_dir(self) -> str:
@@ -173,6 +176,9 @@ class HyPERDataset(InMemoryDataset):
             for obj in self.node_input_names],
             dim=0
         )
+        
+        print(x)
+        input()
         return x[torch.any(x.isnan(),dim=1)==False]
 
     def edge_attributes(
@@ -223,7 +229,7 @@ class HyPERDataset(InMemoryDataset):
             "dPhi": dPhi,
             "dR": dR,
             "kT": kT,
-            "Z_edge": Z_edge,
+            "Z": Z_edge,
             "M2": M2
         }
         
