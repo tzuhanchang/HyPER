@@ -19,7 +19,11 @@ from .filter import TargetConnectivityFilter
 class HyPERDataset(InMemoryDataset):
     
     """
-    HyPERDataset is loaded into memory
+    Builds the graph dataset. Inherits from the PyTorchGeometric InMemoryDataset,
+        which comes with __init__ and process methods.
+        
+    Process is called when the data is loaded. It calls the various methods for building the nodes, edge and global parameters
+    
     """
     def __init__(
         self,
@@ -68,8 +72,8 @@ class HyPERDataset(InMemoryDataset):
             self._use_EPxPyPz = True
 
 
-        # Parse edge features
-        self.edge_features_to_use, edge_transforms = self.parse_edge_features(parsed_inputs)
+        # Parse edge features, returning dict
+        self.edge_features_to_use = self.parse_edge_features(parsed_inputs)
         
         node_transforms   = [eval(f"lambda x: {f}") for f in parsed_inputs['input']['node_transforms']]
         global_transforms = [eval(f"lambda x: {f}") for f in parsed_inputs['input']['global_transforms']]
@@ -78,8 +82,11 @@ class HyPERDataset(InMemoryDataset):
             transforms=[
                 node_transforms,
                 global_transforms,
-                edge_transforms
+                list(self.edge_features_to_use.values())
             ])
+        
+        print(list(self.edge_features_to_use.values()))
+        input()
         
         if parsed_inputs['input']['pre_transform']:
             print("`pre_transform` is turned on.")
@@ -105,30 +112,30 @@ class HyPERDataset(InMemoryDataset):
         User selects from set of pre-defined edge features
         Must select the appropriate transforms too
         """
-        all_edge_feature_names = {"delta_eta": lambda x: x,
-                                  "delta_phi": lambda x: x,
-                                  "delta_R"  : lambda x: x,
-                                  "kT"       : lambda x: torch.log(x),
-                                  "Z"        : lambda x: torch.log(x),
-                                  "M2"       : lambda x: torch.log(x)}
-        
+        all_edge_feature_names = {
+            "delta_eta": lambda x: x,
+            "delta_phi": lambda x: x,
+            "delta_R"  : lambda x: x,
+            "kT"       : lambda x: torch.log(x),
+            "Z"        : lambda x: torch.log(x),
+            "M2"       : lambda x: torch.log(x)
+        }
+
         if "edge_features" in parsed_inputs["input"]:
-            requested_features  = set(parsed_inputs["input"]["edge_features"])
-            HyPER_edge_features = set(all_edge_feature_names.keys())
+            requested_features  = parsed_inputs["input"]["edge_features"]
+            HyPER_edge_features = list(all_edge_feature_names.keys())
             
-            edge_features_to_use = list(HyPER_edge_features & requested_features)
-            if len(requested_features - HyPER_edge_features) !=0:
-                warn("Edge feature specified which is not in known HyPER edge features" , UserWarning)
-            edge_transforms = [all_edge_feature_names[k] for k in edge_features_to_use]
+            # Check if there are any requested features not in the known edge features
+            if len(set(requested_features) - set(HyPER_edge_features)) != 0:
+                # warn("Edge feature specified which is not in known HyPER edge features", UserWarning)
+                raise KeyError("Edge features have been specified which do not match the pre-defined attributes")
+            # Create a dictionary containing only the requested edge features
+            edge_features_to_use = {k: all_edge_feature_names[k] for k in requested_features}
         else:
-            edge_features_to_use = list(all_edge_feature_names.keys())
-            edge_transforms = list(all_edge_feature_names.values())    
+            # If no specific edge features are requested, use all available edge features
+            edge_features_to_use = all_edge_feature_names
             
-        print(edge_features_to_use)
-        print(edge_transforms)
-        input()
-            
-        return edge_features_to_use , edge_transforms
+        return edge_features_to_use 
     
     @staticmethod
     def parse_config_file(filename):
@@ -180,9 +187,6 @@ class HyPERDataset(InMemoryDataset):
             for obj in self.node_input_names],
             dim=0
         )
-        
-        print(x)
-        input()
         return x[torch.any(x.isnan(),dim=1)==False]
 
     def edge_attributes(
@@ -237,7 +241,7 @@ class HyPERDataset(InMemoryDataset):
             "M2": M2
         }
         
-        required_edge_features = [computed_edge_features[k] for k in self.edge_features_to_use]
+        required_edge_features = [computed_edge_features[k] for k in self.edge_features_to_use.keys()]
         edge_attr = torch.cat(required_edge_features,dim=1)
         
         return edge_index, edge_attr
@@ -402,7 +406,12 @@ class HyPERDataset(InMemoryDataset):
                     edge_attr_t = self.edge_labels(edge_index, ids)
                     # Constructing hyperedge label tensor
                     hyperedge_attr_t = self.hyperedge_labels(hyperedge_index, ids)
-
+                    
+                    print(x.shape)
+                    print(edge_index.shape)
+                    print(edge_attr.shape)
+                    print(edge_attr_t.shape)
+                    input()
                     data_list.append(Data(x=x,
                                           edge_index=edge_index,
                                           edge_attr=edge_attr,
