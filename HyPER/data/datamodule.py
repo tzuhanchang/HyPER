@@ -98,9 +98,6 @@ class HyPERDataModule(LightningDataModule):
             else:
                 self.train_data = HyPERDataset(root=self.root, name=self.train_set)
                 self.val_data   = HyPERDataset(root=self.root, name=self.val_set)
-                
-            print(self.train_data.__dict__)
-            input()
 
             # Limit training dataset size to self.max_n_events
             if self.max_n_events == -1:

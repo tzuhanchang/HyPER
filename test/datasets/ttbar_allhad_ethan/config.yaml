@@ -1,8 +1,8 @@
 input:
   nodes: # of form {Node type: enum}
-    JET: 1
+    JET: 9
   padding: # do we need padding? 
-    Jet: 20
+    JET: 20
   node_features: 
     - e
     - eta
@@ -20,13 +20,15 @@ input:
     - delta_phi
     - delta_R
     - M2
+    - Z
+    - kT
   global_features: 
     - njet
     - nbTagged
   global_transforms: 
     - x/6
     - x/2
-  pre_transform: "True"
+  pre_transform: True
 
 target:
   edge: 

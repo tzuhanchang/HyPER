@@ -124,6 +124,10 @@ class HyPERDataset(InMemoryDataset):
             edge_features_to_use = list(all_edge_feature_names.keys())
             edge_transforms = list(all_edge_feature_names.values())    
             
+        print(edge_features_to_use)
+        print(edge_transforms)
+        input()
+            
         return edge_features_to_use , edge_transforms
     
     @staticmethod
@@ -225,16 +229,16 @@ class HyPERDataset(InMemoryDataset):
         M2  = (node_i + node_j).m
 
         computed_edge_features = {
-            "dEta": dEta,
-            "dPhi": dPhi,
-            "dR": dR,
+            "delta_eta": dEta,
+            "delta_phi": dPhi,
+            "delta_R": dR,
             "kT": kT,
             "Z": Z_edge,
             "M2": M2
         }
         
         required_edge_features = [computed_edge_features[k] for k in self.edge_features_to_use]
-        edge_attr = torch.cat([required_edge_features],dim=1)
+        edge_attr = torch.cat(required_edge_features,dim=1)
         
         return edge_index, edge_attr
 
