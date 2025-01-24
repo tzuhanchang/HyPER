@@ -5,25 +5,8 @@ import torch
 import warnings
 
 from omegaconf import DictConfig, OmegaConf
-from lightning_utilities.core.imports import RequirementCache
-_ONNX_AVAILABLE = RequirementCache("onnx")
-from typing import Any
 
 from HyPER.models import HyPERModel
-
-
-@torch.no_grad()
-def to_onnx(LightningModel, output, **kwargs: Any) -> None:
-    """Saves the model in ONNX format.
-    This function is modified from `lightning.pytorch.core.module`.
-    """
-    if not _ONNX_AVAILABLE:
-        raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
-
-    mode = LightningModel.training
-
-    torch.onnx.dynamo_export(LightningModel, **kwargs,).save(output)
-    LightningModel.train(mode)
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="default")
@@ -59,34 +42,35 @@ def Onnx(cfg : DictConfig) -> None:
         map_location = map_location,
     )
 
-    # Define input samples
-    l_x_s_ = torch.randn((13,hparams['node_in_channels']))
-    torch._dynamo.mark_dynamic(l_x_s_, 0)
-    l_edge_attr_s_ = torch.randn((72,hparams['edge_in_channels']))
-    torch._dynamo.mark_dynamic(l_edge_attr_s_, 0)
-    l_edge_index_ = torch.randint(0,12,(2,72))
-    torch._dynamo.mark_dynamic(l_edge_index_, 1)
-    l_u_s_ = torch.randn((2,hparams['global_in_channels']))
-    torch._dynamo.mark_dynamic(l_u_s_, 0)
-    l_batch_ = torch.LongTensor([0,0,0,0,0,0,1,1,1,1,1,1,1])
-    torch._dynamo.mark_dynamic(l_batch_, 0)
-    l_edge_index_h_ = torch.randint(0,12,(hparams['hyperedge_order'],55))
-    torch._dynamo.mark_dynamic(l_edge_index_h_, 1)
-    l_edge_index_h_batch_ = torch.cat([torch.full([20],0, dtype=torch.int64),torch.full([35],1, dtype=torch.int64)],dim=0)
-    torch._dynamo.mark_dynamic(l_edge_index_h_batch_, 0)
-
-    input_samples = {
-        "x_s": l_x_s_,
-        "edge_attr_s": l_edge_attr_s_,
-        "edge_index": l_edge_index_,
-        "u_s": l_u_s_,
-        "batch": l_batch_,
-        "edge_index_h": l_edge_index_h_,
-        "edge_index_h_batch": l_edge_index_h_batch_
-    }
-
-    to_onnx(model, output=cfg['onnx_output'], **input_samples)
-
+    model.eval()
+    with torch.no_grad():
+        export_options = torch.onnx.ExportOptions(dynamic_shapes=True)
+        onnx_program = torch.onnx.export(
+            model,
+            (
+                torch.randn((13,hparams['node_in_channels'])),
+                torch.randint(0,12,(2,72)),
+                torch.randn((72,hparams['edge_in_channels'])),
+                torch.randn((2,hparams['global_in_channels'])),
+                torch.LongTensor([0,0,0,0,0,0,1,1,1,1,1,1,1]),
+                torch.randint(0,12,(hparams['hyperedge_order'],55)),
+                torch.cat([torch.full([20],0, dtype=torch.int64),torch.full([35],1, dtype=torch.int64)],dim=0)
+            ),
+            cfg['onnx_output'],
+            do_constant_folding=True,
+            input_names=['x_s', 'edge_index', 'edge_attr_s', 'u_s', 'batch', 'edge_index_h', 'edge_index_h_batch'],
+            output_names=['x_hat', 'batch_hyperedge', 'edge_attr_prime'],
+            dynamic_axes={'x_s'               : {0 : 'graph_order'},
+                          'edge_index'        : {1 : 'edge_size'},
+                          'edge_attr_s'       : {0 : 'edge_size'},
+                          'u_s'               : {0 : 'batch_size'},
+                          'batch'             : {0 : 'graph_order'},
+                          'edge_index_h'      : {1 : 'hyperedge_size'},
+                          'edge_index_h_batch': {0 : 'hyperedge_size'},
+                          'x_hat'             : {0 : 'hyperedge_size'},
+                          'batch_hyperedge'   : {0 : 'hyperedge_size'},
+                          'edge_attr_prime'   : {0 : 'edge_size'}}
+        )
 
 if __name__ == "__main__":
     Onnx()

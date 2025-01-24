@@ -5,18 +5,17 @@ channels:
 dependencies:
   - python=3.10.*
   - pip
-  - pytorch=2.3.*
+  - pytorch=2.5.*
   - pytorch-cuda=11.8
   - torchvision
   - torchaudio
   - cudatoolkit=11.8
   - pip:
     - torch_geometric
-    - https://data.pyg.org/whl/torch-2.3.0%2Bcu118/torch_scatter-2.1.2%2Bpt23cu118-cp310-cp310-linux_x86_64.whl
+    - https://data.pyg.org/whl/torch-2.5.0%2Bcu118/torch_scatter-2.1.2%2Bpt25cu118-cp310-cp310-linux_x86_64.whl
     - numpy==1.26.4
     - pandas
-    - lightning
-    - pytorch-lightning
+    - lightning==2.5.*
     - tensorboard
     - jupyterlab
     - uproot
@@ -26,5 +25,5 @@ dependencies:
     - hydra-core
     - rich
     - onnx
-    - onnxruntime
+    - onnxruntime==1.18
     - onnxscript
