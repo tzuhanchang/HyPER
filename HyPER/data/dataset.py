@@ -36,10 +36,18 @@ class HyPERDataset(InMemoryDataset):
     ) -> None:
         
         self.root = root
-        self.name = name
+        self.name = name # This is the name of the file to be loaded
+        # self.names is a list of all names in the directory
+        
         self.names = [
             osp.splitext(file)[0] for file in 
             listdir(osp.join(self.root, "raw"))]
+        # Filter self.names to only include the files that match input_name
+        self.names = [name for name in self.names if name == self.name]
+        # Throw an error if no file matching input_name exists
+        if len(self.names) == 0:
+            raise FileNotFoundError(f"No file matching '{self.input_name}' found in the 'raw' directory.")
+        
         file_index = [i for i in range(len(self.names))
                             if self.names[i] == self.name]
         assert len(file_index) == 1
@@ -84,9 +92,6 @@ class HyPERDataset(InMemoryDataset):
                 global_transforms,
                 list(self.edge_features_to_use.values())
             ])
-        
-        print(list(self.edge_features_to_use.values()))
-        input()
         
         if parsed_inputs['input']['pre_transform']:
             print("`pre_transform` is turned on.")
@@ -230,7 +235,7 @@ class HyPERDataset(InMemoryDataset):
         dR  = torch.sqrt((dEta)**2+(dPhi)**2)
         kT  = torch.min(node_i.pt,node_j.pt)*dR
         Z_edge   = torch.min(node_i.pt,node_j.pt)/(node_i.pt + node_j.pt)
-        M2  = (node_i + node_j).m
+        M2  = torch.clamp((node_i + node_j).m,0.001)
 
         computed_edge_features = {
             "delta_eta": dEta,
@@ -380,7 +385,8 @@ class HyPERDataset(InMemoryDataset):
         Process all raw files in the `raw_dir`. This is only done 
         once unless `force_reload=True` is set.
         """
-        # Loop through files
+        # Loop through files - (Ethan) this is the part which needs to be changed just now it just looks over files
+        # There should be set files to loop over based on the input name
         for i in range(len(self.raw_file_names)):
             raw_file_name = self.raw_file_names[i]
             data_list = []
@@ -407,11 +413,6 @@ class HyPERDataset(InMemoryDataset):
                     # Constructing hyperedge label tensor
                     hyperedge_attr_t = self.hyperedge_labels(hyperedge_index, ids)
                     
-                    print(x.shape)
-                    print(edge_index.shape)
-                    print(edge_attr.shape)
-                    print(edge_attr_t.shape)
-                    input()
                     data_list.append(Data(x=x,
                                           edge_index=edge_index,
                                           edge_attr=edge_attr,

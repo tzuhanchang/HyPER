@@ -67,6 +67,9 @@ def Predict(cfg : DictConfig) -> None:
     graphedge_vct = []
     hyperedges = []
     graphedges = []
+    
+    print(out)
+    input()
 
     for i in tqdm(range(len(out)), desc="Evaluating", unit='batch'):
         x_out, edge_attr_out, N_nodes, encodings = out[i]
