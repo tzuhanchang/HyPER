@@ -1,0 +1,29 @@
+name: HyPER_ONNX
+channels:
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.10.*
+  - pip
+  - cudatoolkit=11.8
+  - pip:
+    - numpy==2.2.2
+    - pandas==2.2.3
+    - uproot==5.5.1
+    - awkward==2.7.3
+    - h5py==3.12.1
+    - hydra-core==1.3.2
+    - rich==13.9.4
+    - jupyterlab==4.3.5
+    - torch==2.6.0+cu118
+    - torchaudio==2.6.0+cu118
+    - torchvision==0.21.0+cu118
+    - --extra-index-url https://download.pytorch.org/whl/cu118
+    - torch-geometric==2.6.1
+    - torch-scatter==2.1.2
+    - lightning==2.5.*
+    - tensorboard==2.18.0
+    - torch-hep==0.0.4
+    - onnx==1.17.0
+    - onnxruntime==1.20.1
+    - onnxscript==0.1.0
