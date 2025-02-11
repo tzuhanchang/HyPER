@@ -1,8 +1,6 @@
 from typing import Callable, List, Optional, Tuple
 from warnings import warn
 from os import listdir, path as osp
-from itertools import permutations,combinations
-from tqdm import tqdm 
 
 import h5py
 import yaml
@@ -25,7 +23,8 @@ class EthanDataset(InMemoryDataset):
     Builds the graph dataset. Inherits from the PyTorchGeometric InMemoryDataset,
         which comes with __init__ and process methods.
         
-    Process is called when the data is loaded. It calls the various methods for building the nodes, edge and global parameters
+    Process is called when the data is loaded. 
+    It calls the various methods for building the nodes, edge and global parameters
     
     """
     def __init__(
@@ -57,7 +56,7 @@ class EthanDataset(InMemoryDataset):
         self.file_index = file_index[0]
 
         # Parse database config file, setting instance attributes
-        parsed_inputs = EthanDataset.parse_config_file(f"{self.root}/config.yaml")
+        parsed_inputs = EthanDataset._parse_config_file(f"{self.root}/config.yaml")
         
         self.node_input_names   = list(parsed_inputs['input']['nodes'].keys())
         self.input_id           = parsed_inputs['input']['nodes']
@@ -146,7 +145,7 @@ class EthanDataset(InMemoryDataset):
         return edge_features_to_use 
     
     @staticmethod
-    def parse_config_file(filename):
+    def _parse_config_file(filename):
         with open(filename) as stream:
             try:
                 return yaml.safe_load(stream)
@@ -284,6 +283,74 @@ class EthanDataset(InMemoryDataset):
         return torch.tensor(rf.structured_to_unstructured(input_h5["GLOBAL"][:]))[:].squeeze(1)
     
     
+    def assign_node_ids(self,node_feature_array: torch.Tensor, labels_h5: h5py._hl.group.Group):
+        
+        """
+        Creates awkward arrays storing to the local index and cantor index of the nodes, split by event e.g.
+            self.local_node_ids  = ak.Array[[0,1,2,3],[0,1]] - This is just a ragged array of integers from 0
+            self.cantor_node_ids = ak.Array[[4,8,13,26],[8,13]] - Ragged array of cantor IDs
+            
+        local_node_ids are used for building the (hyper)edge indices 
+        cantor_node_ids are used for building the (hyper)edge targets
+                    
+        Parameters:
+        - node_feature_array (torch.Tensor): x
+        - labels_h5 (torch.Tensor): h5file["LABELS"]
+        
+        Comments:
+        - This could probably be streamlined by using numpy intermediary
+        """
+    
+        # The first number used is the obj type e.g. 1 for jet, 2 for lepton, etc.
+        k1 = node_feature_array[:,-1]
+        
+        # The second number used is the matching number
+        truth_label_imported = [labels_h5[obj] for obj in ["JET","LEPTON"]]
+        truthlabels = np.concatenate(truth_label_imported,axis=1)
+        k2 = torch.tensor(truthlabels[truthlabels!=-99]) #Right now this is hard-coded
+        
+        # Use the cantor pairing function to assign a unique ID as a tensor
+        cantor_pairing = lambda k1,k2: (k1+k2)*(k1+k2+1)/2 + k2
+        cantor_node_ids_tensor = cantor_pairing(k1,k2) 
+        
+        # Re-cast this as an awkward array split by event
+        self.cantor_node_ids   = ak.unflatten(
+            ak.Array(np.asarray(cantor_node_ids_tensor)),
+            ak.Array(np.asarray(self.Nobjects))
+        )
+        
+        # Equivalent integer index for each node in each event
+        self.local_node_ids  =   ak.local_index(self.cantor_node_ids)
+
+    @staticmethod
+    def _awkward_nondiag_cartesian(arr: ak.Array) -> ak.Array:
+        
+        """
+        Performs cartesian product on an awkward.Array with itself (arr x arr), 
+            dropping the diagonal components
+        Parameters:
+        - ak.Array
+        Returns:
+        - ak.Array
+        """
+        tmp       = ak.cartesian((arr,arr),nested=True)     # Compute the standard cartesian product
+        tmp_index = ak.argcartesian((arr,arr),nested=True)  # Compute the cartesian product of the indices
+        return tmp[tmp_index["0"]!=tmp_index["1"]]          # Return a filtered object where matching indices are dropped
+    
+    @staticmethod
+    def _map_nested_awkward_to_torch(arr:ak.Array) -> torch.tensor:
+        
+        """
+        Takes an ak.Array which is singly-ragged and converts to torch.tensor column required
+        [Four instances of this use within the build_edge_indices and build_hyperedge_indices methods]
+        """
+        # Flatten the array into 1D
+        flat = ak.flatten(arr)
+        # Convert the result to an unstructured numpy array of shape 
+        unstruct_numpy_array = rf.structured_to_unstructured(flat.to_numpy())
+        # Convert the numpt array to a tensor of shape Nx1, where .t() takes the transpose
+        return torch.as_tensor(unstruct_numpy_array).t()        
+    
     def build_edge_indices(self) -> torch.tensor:
         
         """
@@ -292,22 +359,28 @@ class EthanDataset(InMemoryDataset):
         Returns:
         torch.Tensor of shape (E,2) where E is the sum of N-choose-2 for N in self.Nobjects
         """
+        # Compute all edge_pairs using awkward cartesian operation
+        edge_pairs = EthanDataset._awkward_nondiag_cartesian(self.local_node_ids)
+        # Convert to singly-ragged ak.Array 
+        edge_pairs_1flat = ak.flatten(edge_pairs)
+        # Convert to required torch.tensor
+        self.edge_index = EthanDataset._map_nested_awkward_to_torch(edge_pairs_1flat)
+        
+        # Compute all cantor ID edge pair combinations using awkward cartesian operation
+        cantor_edge_pairs = EthanDataset._awkward_nondiag_cartesian(self.cantor_node_ids)
+        # Convert to singly-ragged ak.Array
+        cantor_edge_pairs_1flat = ak.flatten(edge_pairs)
+        # Convert to required torch.tensor
+        self.cantor_edge_index = EthanDataset._map_nested_awkward_to_torch(cantor_edge_pairs_1flat)
 
-        edge_list = []
-        for mon in tqdm(self.Nobjects.tolist()):
-            edge_index = torch.tensor(
-                list(permutations(range(mon), r=2)),
-                dtype=torch.int64
-            ).permute(dims=(1,0))
-            edge_list.append(edge_index)
-            
-        return torch.cat(edge_list,dim=1)
-    
     
     def build_hyperedge_indices(self, hyperedge_cardinality: int) -> torch.tensor:
         
         """
-        The combination of nodes corresponding to each possible hyperedge
+        Computes the combination of nodes corresponding to each possible hyperedge, per event.
+        Uses awkward operatiosn to perform N-choose-H, with:
+        - N = multiplcity of each event
+        - H = hyperedge_cardinality
                 
         Parameters:
         - hyperedge_cardinality (int): number of nodes in a hyperedge
@@ -315,80 +388,47 @@ class EthanDataset(InMemoryDataset):
         Returns:
         torch.Tensor of shape (N,1) for N nodes
         """
-
-        hyperedge_list = []
-        # Loop over 
-        for mon in tqdm(self.Nobjects.tolist()):
-            hyperedge_index = torch.tensor(
-                list(combinations(range(mon), r=hyperedge_cardinality)),
-                dtype=torch.int64
-            ).permute(dims=(1,0))
-            hyperedge_list.append(hyperedge_index)
-            
-        return torch.cat(hyperedge_list,dim=1)
+        # Perform N-choose-H for local node IDs
+        hyperedge_node_index_combinations = ak.combinations(self.local_node_ids, hyperedge_cardinality)
+        # Convert to torch.tensor
+        self.hyperedge_index = EthanDataset._map_nested_awkward_to_torch(hyperedge_node_index_combinations)
     
-    def assign_node_ids(self,node_feature_array: torch.Tensor, labels_h5: h5py._hl.group.Group) -> torch.tensor:
+        # Perform N-choose-H for Cantor node IDs
+        hyperedge_cantor_index_combinations = ak.combinations(self.cantor_node_ids, hyperedge_cardinality)
+        # Convert to torch.tensor
+        self.cantor_hyperedge_index = EthanDataset._map_nested_awkward_to_torch(hyperedge_cantor_index_combinations)
+        
+    def find_matched_connections(self,
+                                 connection_input_cantor_tensor: torch.Tensor,
+                                 target_connection_ids: torch.Tensor) -> torch.Tensor:
         
         """
         Assign target 1 or 0 to all connection objects (edges / hyperedges separately)
         
         Parameters:
-        - node_feature_array (torch.Tensor): x
-        - labels_h5 (torch.Tensor): h5file["INPUTS"]
-        
-        Returns:
-        torch.Tensor of shape (N,1) for N nodes
-        """
-    
-        # The first number used is the obj type
-        k1 = node_feature_array[:,-1]
-        
-        # The second number used is the matching number
-        truth_label_imported = [labels_h5[obj] for obj in ["JET","LEPTON"]]
-        truthlabels = np.concatenate(truth_label_imported,axis=1)
-        k2 = torch.tensor(truthlabels[truthlabels!=-99]) #Right now this is hard-coded
-        
-        cantor_pairing = lambda k1,k2: (k1+k2)*(k1+k2+1)/2 + k2
-        
-        return cantor_pairing(k1,k2)
-    
-    def find_matched_edges(self,
-                           node_ids: torch.Tensor,
-                           connection_indices: torch.Tensor,
-                           target_connection_ids: torch.Tensor) -> torch.Tensor:
-        
-        """
-        Assign target 1 or 0 to all connection objects (edges / hyperedges separately)
-        
-        Parameters:
-        - node_ids (torch.Tensor): the IDs of each node in the dataset
-        - connection_indices (torch.Tensor): edge_index / hyperedge_index
+        - connection_input_cantor_tensor (torch.Tensor): tensor containing the cantor indices of all edges or hyperedges
         - target_connection_ids (torch.Tensor): target_edge_ids / target_hyperedge_ids
 
         Returns:
         torch.Tensor of shape (N,1) for N connections (edges/hyperedges), with each element 1 or 0
         """
-        
-        # Broadcasts the node ids into the shape of the connection_indices
-        connection_index_id_filled = node_ids[connection_indices]
 
         # Initialise the output edge labels as all zeros
-        output_labels = torch.zeros(connection_index_id_filled.shape[1], 1, dtype=torch.float32)
+        output_labels = torch.zeros(connection_input_cantor_tensor.shape[1], 1, dtype=torch.float32)
         
         # Loops over all set of targets, which corresponds to all candidate edges
         for target in target_connection_ids:
-            # Compute whether the target indices are in connection_index_id_filled
-            eid = torch.isin(connection_index_id_filled,torch.tensor(target))
+            # Compute whether the target indices are in connection_input_cantor_tensor
+            eid = torch.isin(connection_input_cantor_tensor,torch.tensor(target))
             # If both feature, it's true
             output_labels += 1.0*torch.all(eid,dim=0).reshape(-1,1)
             
         return output_labels
             
-    
     def generate_slices(self):
         
         """
-        Computes the index which demarcates the separate events
+        Computes the index which demarcates separate events
         (This differs for the different categories)
         
         Acts on self.Nobjects.
@@ -401,7 +441,7 @@ class EthanDataset(InMemoryDataset):
         choose_3 = lambda t: t * (t - 1) * (t - 2) // 6
 
         slice_x_index         = torch.cat((torch.tensor([0]),torch.cumsum(self.Nobjects, dim=0)))
-        slice_u_index         = torch.arange(0,len(self.Nobjects+1))
+        slice_u_index         = torch.arange(0,len(self.Nobjects)+1)
         slice_edge_index      = torch.cat((torch.tensor([0]),torch.cumsum(2*choose_2(self.Nobjects), dim=0)))
         slice_hyperedge_index = torch.cat((torch.tensor([0]),torch.cumsum(choose_3(self.Nobjects), dim=0)))
         
@@ -418,6 +458,8 @@ class EthanDataset(InMemoryDataset):
         
         """
         Built-in PyG-InMemoryDataset method
+        Reads one h5 file
+        
         
         """
         
@@ -425,8 +467,11 @@ class EthanDataset(InMemoryDataset):
         filename = osp.join(self.raw_dir, self.raw_file_names[0])
         print(f"Parsing {filename}")
         with h5py.File(filename,'r') as file:
-            num_events = len(file['INPUTS/GLOBAL'])
+
+            num_events = len(file['INPUTS']["GLOBAL"])
             print(f"Building HyPERDataset with {num_events} events")
+            
+            # Node,edge,global attribute tensor creation
             # Constructing node input tensor
             print("Building node attributes")
             x, self.Nobjects = self.build_node_attributes(file['INPUTS'])
@@ -436,32 +481,35 @@ class EthanDataset(InMemoryDataset):
             # Constructing global input tensor
             print("Building global attributes")
             u = self.build_global_attributes(file['INPUTS'])
-            # Construcrting edge index tensor
-            print("Building edge indices")            
-            edge_index = self.build_edge_indices()
-            # Constructing hyperedge index tensor
-            print("Building hyperedge indices")    
-            hyperedge_index = self.build_hyperedge_indices(3)
-            # Assign unique target ids
-            node_ids = self.assign_node_ids(x,file['LABELS'])
-            # Constructing edge label tensor
-            print("Building edge target labels")    
-            edge_attr_t = self.find_matched_edges(node_ids,edge_index,self.target_edge_ids)
-            # Constructing hyperedge label tensor
-            print("Building hyperedge target labels")    
-            hyperedge_attr_t = self.find_matched_edges(node_ids,hyperedge_index,self.target_hyperedge_ids)
             
-            slices = self.generate_slices()   
+            # Assign the local and Cantor node IDs
+            self.node_ids = self.assign_node_ids(x,file['LABELS'])
+            
+        # Construcrting edge index tensor
+        print("Building edge indices")            
+        self.build_edge_indices()
+        # Constructing hyperedge index tensor
+        print("Building hyperedge indices")    
+        self.build_hyperedge_indices(hyperedge_cardinality=3)
+        # Assign unique target ids
+        # Constructing edge label tensor
+        print("Building edge target labels")    
+        edge_attr_t = self.find_matched_connections(self.cantor_edge_index,self.target_edge_ids)
+        # Constructing hyperedge label tensor
+        print("Building hyperedge target labels")    
+        hyperedge_attr_t = self.find_matched_connections(self.cantor_hyperedge_index,self.target_hyperedge_ids)
+        
+        slices = self.generate_slices()   
             
         # Create data_dict
         data_dict = {}
-        data_dict['edge_attr_t']        = edge_attr_t
-        data_dict['hyperedge_attr_t']   = hyperedge_attr_t
         data_dict['x']                  = x 
         data_dict['edge_attr']          = edge_attr
         data_dict['u']                  = u
-        data_dict['edge_index']         = edge_index
-        data_dict['hyperedge_index']    = hyperedge_index
+        data_dict['edge_index']         = self.edge_index
+        data_dict['hyperedge_index']    = self.hyperedge_index
+        data_dict['edge_attr_t']        = edge_attr_t
+        data_dict['hyperedge_attr_t']   = hyperedge_attr_t
             
         fs.torch_save((data_dict, slices, Data), self.processed_paths[0])
 
