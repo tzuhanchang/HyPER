@@ -169,34 +169,13 @@ class EthanDataset(InMemoryDataset):
     def processed_file_names(self) -> List[str]:
         return [f'{name}.pt' for name in self.names]
 
-
-    # def target_ids(self) -> Tuple[List,List]:
-    #     """
-    #     Assign each edge/hyperedge target with an unique ID.
-    #     """
-    #     target_edge_ids = []
-    #     if len(self.edge_targets) != 0:
-    #         for target in self.edge_targets:
-    #             tmp = []
-    #             for label in target:
-    #                 k1, k2 = label.split('-')
-    #                 k1, k2 = int(k1), int(k2)
-    #                 tmp.append((k1+k2)*(k1+k2+1)/2 + k2)
-    #             target_edge_ids.append(tmp)
-    #     target_hyperedge_ids = []
-    #     if len(self.hyperedge_targets) != 0:
-    #         for target in self.hyperedge_targets:
-    #             tmp = []
-    #             for label in target:
-    #                 k1, k2 = label.split('-')
-    #                 k1, k2 = int(k1), int(k2)
-    #                 tmp.append((k1+k2)*(k1+k2+1)/2 + k2)
-    #             target_hyperedge_ids.append(tmp)
-    #     return target_edge_ids, target_hyperedge_ids
     
     def assign_target_ids(self) -> Tuple[List, List]:
         """
         Assign each edge/hyperedge target with a unique ID.
+        
+        Uses the Cantor function to define each ID, 
+        then parses the input edge and hyperedge targets to define target_edge_ids and target_hyperedge_ids
         """
         def compute_target_id(label: str) -> int:
             k1, k2 = map(int, label.split('-'))
@@ -230,7 +209,7 @@ class EthanDataset(InMemoryDataset):
         """
         
         object_arrays = []
-        for name,uid in self.input_ds.items():
+        for name,uid in self.input_id.items():
             t = torch.Tensor(rf.structured_to_unstructured(input_h5[name][:]))
             uids = torch.full((t.shape[0],t.shape[1],1),uid)
             object_arrays.append(torch.cat((t,uids),dim=2))
@@ -240,7 +219,6 @@ class EthanDataset(InMemoryDataset):
         remove_nan_mask = ~torch.any(combined.isnan(),dim=2) # Remove the padded entries in each event
         Nobjects = torch.count_nonzero(remove_nan_mask,dim=1)
         return combined[remove_nan_mask], Nobjects
-    
     
     def build_edge_attributes(self,input_h5:h5py._hl.group.Group) -> torch.Tensor:
         
@@ -256,7 +234,7 @@ class EthanDataset(InMemoryDataset):
     
         object_vectors_list = []
         
-        for obj in self.input_ids.keys():
+        for obj in self.input_id.keys():
         
             # Here we should declare which type it is
             if self._use_EEtaPhiPt:
@@ -298,17 +276,25 @@ class EthanDataset(InMemoryDataset):
         return torch.cat((torch_Deta,torch_Dphi,torch_DR,torch_M),dim=1)
     
     
-    def build_globals(self, input_h5: h5py._hl.group.Group) -> torch.Tensor:
+    def build_global_attributes(self, input_h5: h5py._hl.group.Group) -> torch.Tensor:
+        
+        """
+        
+        """
         return torch.tensor(rf.structured_to_unstructured(input_h5["GLOBAL"][:]))[:].squeeze(1)
     
     
-    def build_edge_indices(Nobjects: torch.tensor) -> torch.tensor:
+    def build_edge_indices(self) -> torch.tensor:
         
-        from itertools import permutations 
-        from tqdm import tqdm
+        """
+        The combination of nodes corresponding to each possible edge
+        
+        Returns:
+        torch.Tensor of shape (E,2) where E is the sum of N-choose-2 for N in self.Nobjects
+        """
 
         edge_list = []
-        for mon in tqdm(Nobjects.tolist()):
+        for mon in tqdm(self.Nobjects.tolist()):
             edge_index = torch.tensor(
                 list(permutations(range(mon), r=2)),
                 dtype=torch.int64
@@ -318,13 +304,21 @@ class EthanDataset(InMemoryDataset):
         return torch.cat(edge_list,dim=1)
     
     
-    def build_hyperedge_indices(Nobjects: torch.tensor, hyperedge_cardinality: int) -> torch.tensor:
+    def build_hyperedge_indices(self, hyperedge_cardinality: int) -> torch.tensor:
         
-        from itertools import combinations 
-        from tqdm import tqdm
+        """
+        The combination of nodes corresponding to each possible hyperedge
+                
+        Parameters:
+        - hyperedge_cardinality (int): number of nodes in a hyperedge
+        
+        Returns:
+        torch.Tensor of shape (N,1) for N nodes
+        """
 
         hyperedge_list = []
-        for mon in tqdm(Nobjects.tolist()):
+        # Loop over 
+        for mon in tqdm(self.Nobjects.tolist()):
             hyperedge_index = torch.tensor(
                 list(combinations(range(mon), r=hyperedge_cardinality)),
                 dtype=torch.int64
@@ -333,7 +327,18 @@ class EthanDataset(InMemoryDataset):
             
         return torch.cat(hyperedge_list,dim=1)
     
-    def assign_node_ids(node_feature_array: torch.Tensor, labels_h5: h5py._hl.group.Group) -> torch.tensor:
+    def assign_node_ids(self,node_feature_array: torch.Tensor, labels_h5: h5py._hl.group.Group) -> torch.tensor:
+        
+        """
+        Assign target 1 or 0 to all connection objects (edges / hyperedges separately)
+        
+        Parameters:
+        - node_feature_array (torch.Tensor): x
+        - labels_h5 (torch.Tensor): h5file["INPUTS"]
+        
+        Returns:
+        torch.Tensor of shape (N,1) for N nodes
+        """
     
         # The first number used is the obj type
         k1 = node_feature_array[:,-1]
@@ -341,142 +346,122 @@ class EthanDataset(InMemoryDataset):
         # The second number used is the matching number
         truth_label_imported = [labels_h5[obj] for obj in ["JET","LEPTON"]]
         truthlabels = np.concatenate(truth_label_imported,axis=1)
-        k2 = torch.tensor(truthlabels[truthlabels!=-99])
+        k2 = torch.tensor(truthlabels[truthlabels!=-99]) #Right now this is hard-coded
         
         cantor_pairing = lambda k1,k2: (k1+k2)*(k1+k2+1)/2 + k2
         
         return cantor_pairing(k1,k2)
     
-    
-    def find_matched_edges(node_ids: torch.Tensor,
-                           relational_object_indices: torch.Tensor,
-                           target_relationa_ids: torch.Tensor) -> torch.Tensor:
+    def find_matched_edges(self,
+                           node_ids: torch.Tensor,
+                           connection_indices: torch.Tensor,
+                           target_connection_ids: torch.Tensor) -> torch.Tensor:
         
         """
-        Constructs node attribute tensor 'x' from input h5 group
-
+        Assign target 1 or 0 to all connection objects (edges / hyperedges separately)
+        
         Parameters:
-        - input_h5 (h5py._hl.group.Group): h5_file["INPUTS"].
+        - node_ids (torch.Tensor): the IDs of each node in the dataset
+        - connection_indices (torch.Tensor): edge_index / hyperedge_index
+        - target_connection_ids (torch.Tensor): target_edge_ids / target_hyperedge_ids
 
         Returns:
-        int or float: The maximum value in the list.
+        torch.Tensor of shape (N,1) for N connections (edges/hyperedges), with each element 1 or 0
         """
         
-        # Broadcasts the node ids into the shape of the relational_object_indices
-        relational_index_id_filled = node_ids[relational_object_indices]
+        # Broadcasts the node ids into the shape of the connection_indices
+        connection_index_id_filled = node_ids[connection_indices]
 
         # Initialise the output edge labels as all zeros
-        output_labels = torch.zeros(relational_index_id_filled.shape[1], 1, dtype=torch.float32)
+        output_labels = torch.zeros(connection_index_id_filled.shape[1], 1, dtype=torch.float32)
         
         # Loops over all set of targets, which corresponds to all candidate edges
-        for target in target_relationa_ids:
-            # Compute whether the target indices are in relational_index_id_filled
-            eid = torch.isin(relational_index_id_filled,torch.tensor(target))
+        for target in target_connection_ids:
+            # Compute whether the target indices are in connection_index_id_filled
+            eid = torch.isin(connection_index_id_filled,torch.tensor(target))
             # If both feature, it's true
             output_labels += 1.0*torch.all(eid,dim=0).reshape(-1,1)
             
+        return output_labels
+            
     
-    def generate_event_indices(self,b):
+    def generate_slices(self):
+        
+        """
+        Computes the index which demarcates the separate events
+        (This differs for the different categories)
+        
+        Acts on self.Nobjects.
+
+        Returns:
+        Dictionary of the slices for each category
+        """
         
         choose_2 = lambda t: t * (t - 1) // 2
         choose_3 = lambda t: t * (t - 1) * (t - 2) // 6
 
-        pyg_x_index = torch.cat((torch.tensor([0]),torch.cumsum(b, dim=0)))
-        pyg_u_index = torch.arange(0,len(b))
-        pyg_edge_index = torch.cat((torch.tensor([0]),torch.cumsum(2*choose_2(b), dim=0)))
-        pyg_hyperedge_index = torch.cat((torch.tensor([0]),torch.cumsum(choose_3(b), dim=0)))
+        slice_x_index         = torch.cat((torch.tensor([0]),torch.cumsum(self.Nobjects, dim=0)))
+        slice_u_index         = torch.arange(0,len(self.Nobjects+1))
+        slice_edge_index      = torch.cat((torch.tensor([0]),torch.cumsum(2*choose_2(self.Nobjects), dim=0)))
+        slice_hyperedge_index = torch.cat((torch.tensor([0]),torch.cumsum(choose_3(self.Nobjects), dim=0)))
         
-        return {'x':pyg_x_index, 
-                'edge_index'        : pyg_edge_index, 
-                'edge_attr'         : pyg_edge_index, 
-                'edge_attr_t'       : pyg_edge_index,
-                'u'                 : pyg_u_index ,
-                'hyperedge_index'   : pyg_hyperedge_index, 
-                'hyperedge_attr_t'  : pyg_hyperedge_index}
+        return {'x'                 : slice_x_index, 
+                'edge_index'        : slice_edge_index, 
+                'edge_attr'         : slice_edge_index, 
+                'edge_attr_t'       : slice_edge_index,
+                'u'                 : slice_u_index ,
+                'hyperedge_index'   : slice_hyperedge_index, 
+                'hyperedge_attr_t'  : slice_hyperedge_index}
            
         
     def process(self) -> None:
         
+        """
+        Built-in PyG-InMemoryDataset method
+        
+        """
+        
         # Load the file
-        with h5py.File(osp.join(self.raw_dir, raw_file_name),'r') as file:
+        filename = osp.join(self.raw_dir, self.raw_file_names[0])
+        print(f"Parsing {filename}")
+        with h5py.File(filename,'r') as file:
+            num_events = len(file['INPUTS/GLOBAL'])
+            print(f"Building HyPERDataset with {num_events} events")
             # Constructing node input tensor
-            x, self.Nobjects = self.node_attributes(file['INPUTS'])
+            print("Building node attributes")
+            x, self.Nobjects = self.build_node_attributes(file['INPUTS'])
             # Constructing edge input tensor
-            edge_attr = self.edge_attributes(file['INPUTS'])
+            print("Building edge attributes")
+            edge_attr = self.build_edge_attributes(file['INPUTS'])
             # Constructing global input tensor
-            u = self.global_attributes(file['INPUTS'])
+            print("Building global attributes")
+            u = self.build_global_attributes(file['INPUTS'])
             # Construcrting edge index tensor
-            edge_index = self.build_edge_indices(self.Nobjects)
+            print("Building edge indices")            
+            edge_index = self.build_edge_indices()
             # Constructing hyperedge index tensor
-            hyperedge_index = self.build_hyperedge_indices(self.Nobjects,3)
+            print("Building hyperedge indices")    
+            hyperedge_index = self.build_hyperedge_indices(3)
             # Assign unique target ids
-            node_ids = self.assign_node_ids(file['LABELS'])
+            node_ids = self.assign_node_ids(x,file['LABELS'])
             # Constructing edge label tensor
+            print("Building edge target labels")    
             edge_attr_t = self.find_matched_edges(node_ids,edge_index,self.target_edge_ids)
             # Constructing hyperedge label tensor
+            print("Building hyperedge target labels")    
             hyperedge_attr_t = self.find_matched_edges(node_ids,hyperedge_index,self.target_hyperedge_ids)
             
-            slices = self.generate_event_indices(self.Nobjects)   
+            slices = self.generate_slices()   
             
         # Create data_dict
         data_dict = {}
+        data_dict['edge_attr_t']        = edge_attr_t
+        data_dict['hyperedge_attr_t']   = hyperedge_attr_t
         data_dict['x']                  = x 
         data_dict['edge_attr']          = edge_attr
         data_dict['u']                  = u
         data_dict['edge_index']         = edge_index
         data_dict['hyperedge_index']    = hyperedge_index
-        data_dict['edge_attr_t']        = edge_attr_t
-        data_dict['hyperedge_attr_t']   = hyperedge_attr_t
             
-        fs.torch_save((data_dict, slices, Data), path)
+        fs.torch_save((data_dict, slices, Data), self.processed_paths[0])
 
-        
-
-    # def process(self) -> None:
-    #     """
-    #     Process all raw files in the `raw_dir`. This is only done 
-    #     once unless `force_reload=True` is set.
-    #     """
-    #     # Loop through files - (Ethan) this is the part which needs to be changed just now it just looks over files
-    #     # There should be set files to loop over based on the input name
-    #     for i in range(len(self.raw_file_names)):
-    #         raw_file_name = self.raw_file_names[i]
-    #         data_list = []
-    #         # Open the HDF5 file
-    #         with h5py.File(osp.join(self.raw_dir, raw_file_name),
-    #             'r') as file:
-    #             num_entries = len(file['INPUTS/GLOBAL'])
-    #             # Loop through events
-    #             for j in tqdm(range(num_entries),
-    #                           desc=f"File {raw_file_name}",
-    #                           unit="events"):
-    #                 # Constructing node input tensor
-    #                 x = self.node_attributes(file['INPUTS'], j)
-    #                 # Constructing edge input tensor
-    #                 edge_index, edge_attr = self.edge_attributes(x)
-    #                 # Constructing global input tensor
-    #                 u = self.global_attributes(file['INPUTS'], j)
-    #                 # Constructing hyperedge index tensor
-    #                 hyperedge_index = self.hyperedge_index(x)
-    #                 # Assign unique target ids
-    #                 ids = self.node_ids(file['LABELS'], j)
-    #                 # Constructing edge label tensor
-    #                 edge_attr_t = self.edge_labels(edge_index, ids)
-    #                 # Constructing hyperedge label tensor
-    #                 hyperedge_attr_t = self.hyperedge_labels(hyperedge_index, ids)
-                    
-    #                 data_list.append(Data(x=x,
-    #                                       edge_index=edge_index,
-    #                                       edge_attr=edge_attr,
-    #                                       u=u,
-    #                                       hyperedge_index=hyperedge_index,
-    #                                       edge_attr_t=edge_attr_t,
-    #                                       hyperedge_attr_t=hyperedge_attr_t))
-
-    #         if self.pre_filter is not None:
-    #             data_list = [data for data in data_list if self.pre_filter(data)]
-
-    #         if self.pre_transform is not None:
-    #             data_list = [self.pre_transform(data) for data in data_list]
-
-    #         self.save(data_list, self.processed_paths[i])
