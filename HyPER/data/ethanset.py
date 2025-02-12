@@ -111,8 +111,65 @@ class EthanDataset(InMemoryDataset):
         super().__init__(root, transform, pre_transform, pre_filter,
                          force_reload=force_reload)
         self.load(self.processed_paths[self.file_index])
+    
+    
+    @property
+    def raw_dir(self) -> str:
+        return osp.join(self.root, 'raw')
+
+    @property
+    def processed_dir(self) -> str:
+        return osp.join(self.root, 'processed')
+
+    @property
+    def raw_file_names(self) -> List[str]:
+        return [f'{name}.h5' for name in self.names]
+
+    @property
+    def processed_file_names(self) -> List[str]:
+        return [f'{name}.pt' for name in self.names]
+    
+    
+    @staticmethod
+    def _parse_config_file(filename):
         
+        """Parses YAML config"""
+        with open(filename) as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+    
+    @staticmethod
+    def _awkward_nondiag_cartesian(arr: ak.Array) -> ak.Array:
         
+        """
+        Performs cartesian product on an awkward.Array with itself (arr x arr), 
+            dropping the diagonal components
+        Parameters:
+        - ak.Array
+        Returns:
+        - ak.Array
+        """
+        tmp       = ak.cartesian((arr,arr),nested=True)     # Compute the standard cartesian product
+        tmp_index = ak.argcartesian((arr,arr),nested=True)  # Compute the cartesian product of the indices
+        return tmp[tmp_index["0"]!=tmp_index["1"]]          # Return a filtered object where matching indices are dropped
+    
+    @staticmethod
+    def _map_nested_awkward_to_torch(arr:ak.Array) -> torch.tensor:
+        
+        """
+        Takes an ak.Array which is singly-ragged and converts to torch.tensor column required
+        [Four instances of this use within the build_edge_indices and build_hyperedge_indices methods]
+        """
+        # Flatten the array into 1D
+        flat = ak.flatten(arr)
+        # Convert the result to an unstructured numpy array of shape 
+        unstruct_numpy_array = rf.structured_to_unstructured(flat.to_numpy())
+        # Convert the numpt array to a tensor of shape Nx1, where .t() takes the transpose
+        return torch.as_tensor(unstruct_numpy_array).t()      
+    
+    
     def parse_edge_features(self,parsed_inputs):
         
         """
@@ -143,32 +200,7 @@ class EthanDataset(InMemoryDataset):
             edge_features_to_use = all_edge_feature_names
             
         return edge_features_to_use 
-    
-    @staticmethod
-    def _parse_config_file(filename):
-        with open(filename) as stream:
-            try:
-                return yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
 
-    @property
-    def raw_dir(self) -> str:
-        return osp.join(self.root, 'raw')
-
-    @property
-    def processed_dir(self) -> str:
-        return osp.join(self.root, 'processed')
-
-    @property
-    def raw_file_names(self) -> List[str]:
-        return [f'{name}.h5' for name in self.names]
-
-    @property
-    def processed_file_names(self) -> List[str]:
-        return [f'{name}.pt' for name in self.names]
-
-    
     def assign_target_ids(self) -> Tuple[List, List]:
         """
         Assign each edge/hyperedge target with a unique ID.
@@ -193,7 +225,6 @@ class EthanDataset(InMemoryDataset):
         ] if self.hyperedge_targets else []
 
         return target_edge_ids, target_hyperedge_ids
-
     
     def build_node_attributes(self,input_h5:h5py._hl.group.Group) -> List:
         
@@ -274,14 +305,12 @@ class EthanDataset(InMemoryDataset):
         
         return torch.cat((torch_Deta,torch_Dphi,torch_DR,torch_M),dim=1)
     
-    
     def build_global_attributes(self, input_h5: h5py._hl.group.Group) -> torch.Tensor:
         
         """
         
         """
         return torch.tensor(rf.structured_to_unstructured(input_h5["GLOBAL"][:]))[:].squeeze(1)
-    
     
     def assign_node_ids(self,node_feature_array: torch.Tensor, labels_h5: h5py._hl.group.Group):
         
@@ -320,36 +349,7 @@ class EthanDataset(InMemoryDataset):
         )
         
         # Equivalent integer index for each node in each event
-        self.local_node_ids  =   ak.local_index(self.cantor_node_ids)
-
-    @staticmethod
-    def _awkward_nondiag_cartesian(arr: ak.Array) -> ak.Array:
-        
-        """
-        Performs cartesian product on an awkward.Array with itself (arr x arr), 
-            dropping the diagonal components
-        Parameters:
-        - ak.Array
-        Returns:
-        - ak.Array
-        """
-        tmp       = ak.cartesian((arr,arr),nested=True)     # Compute the standard cartesian product
-        tmp_index = ak.argcartesian((arr,arr),nested=True)  # Compute the cartesian product of the indices
-        return tmp[tmp_index["0"]!=tmp_index["1"]]          # Return a filtered object where matching indices are dropped
-    
-    @staticmethod
-    def _map_nested_awkward_to_torch(arr:ak.Array) -> torch.tensor:
-        
-        """
-        Takes an ak.Array which is singly-ragged and converts to torch.tensor column required
-        [Four instances of this use within the build_edge_indices and build_hyperedge_indices methods]
-        """
-        # Flatten the array into 1D
-        flat = ak.flatten(arr)
-        # Convert the result to an unstructured numpy array of shape 
-        unstruct_numpy_array = rf.structured_to_unstructured(flat.to_numpy())
-        # Convert the numpt array to a tensor of shape Nx1, where .t() takes the transpose
-        return torch.as_tensor(unstruct_numpy_array).t()        
+        self.local_node_ids  =   ak.local_index(self.cantor_node_ids)  
     
     def build_edge_indices(self) -> torch.tensor:
         
@@ -373,7 +373,6 @@ class EthanDataset(InMemoryDataset):
         # Convert to required torch.tensor
         self.cantor_edge_index = EthanDataset._map_nested_awkward_to_torch(cantor_edge_pairs_1flat)
 
-    
     def build_hyperedge_indices(self, hyperedge_cardinality: int) -> torch.tensor:
         
         """
@@ -457,10 +456,7 @@ class EthanDataset(InMemoryDataset):
     def process(self) -> None:
         
         """
-        Built-in PyG-InMemoryDataset method
-        Reads one h5 file
-        
-        
+        Built-in PyG-InMemoryDataset method to generate dataset        
         """
         
         # Load the file
@@ -502,14 +498,18 @@ class EthanDataset(InMemoryDataset):
         slices = self.generate_slices()   
             
         # Create data_dict
-        data_dict = {}
-        data_dict['x']                  = x 
-        data_dict['edge_attr']          = edge_attr
-        data_dict['u']                  = u
-        data_dict['edge_index']         = self.edge_index
-        data_dict['hyperedge_index']    = self.hyperedge_index
-        data_dict['edge_attr_t']        = edge_attr_t
-        data_dict['hyperedge_attr_t']   = hyperedge_attr_t
+        PyGDataObject = Data(x              = x,
+                            edge_attr       = edge_attr,
+                            u               = u,
+                            edge_index      = self.edge_index,
+                            hyperedge_index = self.hyperedge_index,
+                            edge_attr_t     = edge_attr_t,
+                            hyperedge_attr_t= hyperedge_attr_t)
+    
+        # Apply the transforms if required
+        if self.pre_transform is not None:
+            print("Transforming inputs")
+            PyGDataObject = self.pre_transform(PyGDataObject)
             
-        fs.torch_save((data_dict, slices, Data), self.processed_paths[0])
+        fs.torch_save((PyGDataObject.to_dict(), slices, Data), self.processed_paths[0])
 
