@@ -17,7 +17,7 @@ from torch_geometric.io import fs
 from .transform import TransformFeatures
 from .filter import TargetConnectivityFilter
 
-class EthanDataset(InMemoryDataset):
+class HyPERDataset(InMemoryDataset):
     
     """
     Builds the graph dataset. Inherits from the PyTorchGeometric InMemoryDataset,
@@ -56,7 +56,7 @@ class EthanDataset(InMemoryDataset):
         self.file_index = file_index[0]
 
         # Parse database config file, setting instance attributes
-        parsed_inputs = EthanDataset._parse_config_file(f"{self.root}/config.yaml")
+        parsed_inputs = HyPERDataset._parse_config_file(f"{self.root}/config.yaml")
         
         self.node_input_names   = list(parsed_inputs['input']['nodes'].keys())
         self.input_id           = parsed_inputs['input']['nodes']
@@ -334,9 +334,17 @@ class EthanDataset(InMemoryDataset):
         k1 = node_feature_array[:,-1]
         
         # The second number used is the matching number
+        # Extract the matching index for each object
         truth_label_imported = [labels_h5[obj] for obj in ["JET","LEPTON"]]
-        truthlabels = np.concatenate(truth_label_imported,axis=1)
-        k2 = torch.tensor(truthlabels[truthlabels!=-99]) #Right now this is hard-coded
+        # Combine into one numpy array
+        truthlabels_np = np.concatenate(truth_label_imported,axis=1)
+        # Convert to torch tensor
+        truthlabels = torch.tensor(truthlabels_np)
+        # Remove padded events (padded events have to be hard-coded with np.nan)
+        remove_nan_mask = ~torch.isnan(truthlabels)
+        # Apply the mask - 
+        # this changes the shape from [Nevents,Nnodes] -> [total # nodes in dataset]
+        k2 = truthlabels[remove_nan_mask]
         
         # Use the cantor pairing function to assign a unique ID as a tensor
         cantor_pairing = lambda k1,k2: (k1+k2)*(k1+k2+1)/2 + k2
@@ -360,18 +368,18 @@ class EthanDataset(InMemoryDataset):
         torch.Tensor of shape (E,2) where E is the sum of N-choose-2 for N in self.Nobjects
         """
         # Compute all edge_pairs using awkward cartesian operation
-        edge_pairs = EthanDataset._awkward_nondiag_cartesian(self.local_node_ids)
+        edge_pairs = HyPERDataset._awkward_nondiag_cartesian(self.local_node_ids)
         # Convert to singly-ragged ak.Array 
         edge_pairs_1flat = ak.flatten(edge_pairs)
         # Convert to required torch.tensor
-        self.edge_index = EthanDataset._map_nested_awkward_to_torch(edge_pairs_1flat)
+        self.edge_index = HyPERDataset._map_nested_awkward_to_torch(edge_pairs_1flat)
         
         # Compute all cantor ID edge pair combinations using awkward cartesian operation
-        cantor_edge_pairs = EthanDataset._awkward_nondiag_cartesian(self.cantor_node_ids)
+        cantor_edge_pairs = HyPERDataset._awkward_nondiag_cartesian(self.cantor_node_ids)
         # Convert to singly-ragged ak.Array
         cantor_edge_pairs_1flat = ak.flatten(edge_pairs)
         # Convert to required torch.tensor
-        self.cantor_edge_index = EthanDataset._map_nested_awkward_to_torch(cantor_edge_pairs_1flat)
+        self.cantor_edge_index = HyPERDataset._map_nested_awkward_to_torch(cantor_edge_pairs_1flat)
 
     def build_hyperedge_indices(self, hyperedge_cardinality: int) -> torch.tensor:
         
@@ -390,12 +398,12 @@ class EthanDataset(InMemoryDataset):
         # Perform N-choose-H for local node IDs
         hyperedge_node_index_combinations = ak.combinations(self.local_node_ids, hyperedge_cardinality)
         # Convert to torch.tensor
-        self.hyperedge_index = EthanDataset._map_nested_awkward_to_torch(hyperedge_node_index_combinations)
+        self.hyperedge_index = HyPERDataset._map_nested_awkward_to_torch(hyperedge_node_index_combinations)
     
         # Perform N-choose-H for Cantor node IDs
         hyperedge_cantor_index_combinations = ak.combinations(self.cantor_node_ids, hyperedge_cardinality)
         # Convert to torch.tensor
-        self.cantor_hyperedge_index = EthanDataset._map_nested_awkward_to_torch(hyperedge_cantor_index_combinations)
+        self.cantor_hyperedge_index = HyPERDataset._map_nested_awkward_to_torch(hyperedge_cantor_index_combinations)
         
     def find_matched_connections(self,
                                  connection_input_cantor_tensor: torch.Tensor,
