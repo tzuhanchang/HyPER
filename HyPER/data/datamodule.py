@@ -8,8 +8,8 @@ from torch.utils.data import random_split
 from torch_geometric.loader import DataLoader
 from typing import Optional
 
-from HyPER.data import HyPERDataset, EventSampler
-
+from HyPER.data import EventSampler
+from HyPER.data.ethanset import HyPERDataset
 
 class HyPERDataModule(LightningDataModule):
     r"""HyPER Data Module encapsulates all the steps needed to
