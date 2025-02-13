@@ -66,7 +66,7 @@ class HyPERDataModule(LightningDataModule):
         self.percent_valid_samples = percent_valid_samples
         
         # Would prefer if these were either read directly from HyPERDataset or 
-        parsed_inputs = HyPERDataset.parse_config_file(f"{self.root}/config.yaml")
+        parsed_inputs = HyPERDataset._parse_config_file(f"{self.root}/config.yaml")
         self.node_in_channels   = len(parsed_inputs['input']['node_features']) + 1
         self.edge_in_channels   = len(parsed_inputs['input']['edge_features'])
         self.global_in_channels = len(parsed_inputs['input']['global_features'])

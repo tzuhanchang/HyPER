@@ -53,8 +53,6 @@ class HyperedgeModel(Module):
 
     def __hyperedge_finding__(self, x, hyperedge_index, r):
         hyperedge_index = hyperedge_index.permute(dims=(1,0))
-        print(hyperedge_index)
-        input()
         x_hyper = torch.gather(
             x.unsqueeze(1).expand([-1,r,-1]),
             0,
@@ -68,7 +66,6 @@ class HyperedgeModel(Module):
 
     def forward(self, x, u, batch, hyperedge_index, batch_hyper, r):
         x_hyper = self.mlp_x(torch.cat([x, u[batch]], dim=1).float())
-        print(x_hyper)
         x_hyper = self.__hyperedge_finding__(x_hyper, hyperedge_index, r)
         x_hyper_hat = self.weighting(x_hyper, batch_hyper)
         out = torch.cat([x_hyper, x_hyper_hat], dim=1).float()
