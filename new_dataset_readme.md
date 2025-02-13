@@ -15,15 +15,17 @@ The `raw` directory contians the input h5 files.
 
 ## Input h5 file structure
 
-The dataset structure is as follows:
+An example dataset structure is as follows:
 ```
 file.h5
 ├── INPUTS
 │   ├── JET
 │   ├── LEPTON
+│   ├── ...
 ├── LABELS
 │   ├── JET
 │   ├── LEPTON
+│   ├── ...
 └── METADATA
     ├── FullyMatched
 ```
@@ -32,17 +34,19 @@ The `INPUTS` group contains the feature the model will use to build the event gr
 The `LABELS` group contains the corresponding "truth-labels" for each dataset in INPUTS. This is used to define the targets for the model to train against. Each dataset (`JET` , `LEPTON`, ...) is a single array of integers.
 
 ## Labels 
-A comment on the truth-matching labels which we use to build the edge and hyperedge targets. You must use **positive integers** to define all non-padded objects in an event, and you must use **np.nan** as the padding placeholder. [HyPER uses the Cantor pairing function to define unique node indices], and removes padded entries specifically by looking for NaN.
+A comment on the truth-matching labels which we use to build the edge and hyperedge targets. You must use **positive integers** to define all non-padded objects in an event, and you must use **np.nan** as the padding placeholder. [HyPER uses the Cantor pairing function to define unique node indices, and removes padded entries specifically by looking for NaN.]
 
 The integer labels used match to known parton in the simulation truth-record. For example, the all-hadronic decay of a ttbar pair to six partons could use label convention:
-| Integer label  | Truth parton   |
-|----|------|
-| 1  | b1   |
-| 2  | W1j1 |
-| 3  | W1j2 |
-| 4  | b2   |
-| 5  | W2j1 |
-| 6  | W2j2 |
+
+| Truth parton | Integer label |
+|--------------|---------------|
+| b1           | 1             |
+| W1j1         | 2             |
+| W1j2         | 3             |
+| b2           | 4             |
+| W2j1         | 5             |
+| W2j2         | 6             |
+
 
 The field `LABELS.JET` could then look like 
 ```
