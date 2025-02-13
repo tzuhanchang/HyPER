@@ -335,7 +335,7 @@ class HyPERDataset(InMemoryDataset):
         
         # The second number used is the matching number
         # Extract the matching index for each object
-        truth_label_imported = [labels_h5[obj] for obj in ["JET","LEPTON"]]
+        truth_label_imported = [labels_h5[obj] for obj in self.input_id.keys()]
         # Combine into one numpy array
         truthlabels_np = np.concatenate(truth_label_imported,axis=1)
         # Convert to torch tensor
