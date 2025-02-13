@@ -35,7 +35,6 @@ The `LABELS` group contains the corresponding "truth-labels" for each dataset in
 A comment on the truth-matching labels which we use to build the edge and hyperedge targets. You must use **positive integers** to define all non-padded objects in an event, and you must use **np.nan** as the padding placeholder. [HyPER uses the Cantor pairing function to define unique node indices], and removes padded entries specifically by looking for NaN.
 
 The integer labels used match to known parton in the simulation truth-record. For example, the all-hadronic decay of a ttbar pair to six partons could use label convention:
-```
 | Integer label  | Truth parton   |
 |----|------|
 | 1  | b1   |
@@ -44,11 +43,10 @@ The integer labels used match to known parton in the simulation truth-record. Fo
 | 4  | b2   |
 | 5  | W2j1 |
 | 6  | W2j2 |
-```
 
 The field `LABELS.JET` could then look like 
 ```
-[0,4,2,0,1,5,0,0,6,NaN,NaN,Nan]
+[0,4,2,0,1,5,0,0,6,NaN,NaN,NaN]
 ```
 for an event with 9 final-state jets, padded to an array of size 12. In this instance, the 0 indicates jets which are not matched to truth-partons. Note that not all jets may match to a parton: this is dependent on one's truth-matching scheme, hence 3 being absent in the example. 
 
