@@ -21,6 +21,7 @@ file.h5
 ├── INPUTS
 │   ├── JET
 │   ├── LEPTON
+│   ├── GLOBAL
 │   ├── ...
 ├── LABELS
 │   ├── JET
@@ -29,11 +30,16 @@ file.h5
 └── METADATA
     ├── FullyMatched
 ```
-The `INPUTS` group contains the feature the model will use to build the event graphs. This data is used in both training and testing phases. Each dataset (`JET` , `LEPTON`, ...) is a structured numpy array with fields which correspond to node features.
 
+### Inputs 
+The `INPUTS` group contains the feature the model will use to build the event graphs. This data is used in both training and testing phases. Each dataset (`JET` , `LEPTON`, ...) is a structured numpy array with fields which correspond to node features, plus the `GLOBAL` dataset which contains the graph-level (event-level) features.
+
+The list of node features which can be used is abitrary, as is the list of global features. Padded entries must be padded with **np.nan**. Edge features are not included in the dataset, but are constructed when HyPER builds the dataset (the primary motivation for this is size of input files).
+
+
+### Labels 
 The `LABELS` group contains the corresponding "truth-labels" for each dataset in INPUTS. This is used to define the targets for the model to train against. Each dataset (`JET` , `LEPTON`, ...) is a single array of integers.
 
-## Labels 
 A comment on the truth-matching labels which we use to build the edge and hyperedge targets. You must use **positive integers** to define all non-padded objects in an event, and you must use **np.nan** as the padding placeholder. [HyPER uses the Cantor pairing function to define unique node indices, and removes padded entries specifically by looking for NaN.]
 
 The integer labels used match to known parton in the simulation truth-record. For example, the all-hadronic decay of a ttbar pair to six partons could use label convention:
@@ -50,7 +56,7 @@ The integer labels used match to known parton in the simulation truth-record. Fo
 
 The field `LABELS.JET` could then look like 
 ```
-[0,4,2,0,1,5,0,0,6,NaN,NaN,NaN]
+[ 0 , 4 , 2 , 0 , 1 , 5 , 0 , 0 , 6 , NaN , NaN , NaN ]
 ```
 for an event with 9 final-state jets, padded to an array of size 12. In this instance, the 0 indicates jets which are not matched to truth-partons. Note that not all jets may match to a parton: this is dependent on one's truth-matching scheme, hence 3 being absent in the example. 
 
@@ -70,14 +76,14 @@ input:
     - eta
     - phi 
     - pt 
-   - btag
+    - btag
     - charge
   node_transforms: # Corresponding list of transformations to the node features
     - torch.log(x)
     - x
     - x
     - torch.log(x)
-   - x
+    - x
     - x
   edge_features: # List of edge features from a pre-defined list of edge features which HyPER can construct
     - delta_eta
