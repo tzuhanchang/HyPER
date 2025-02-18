@@ -377,7 +377,7 @@ class HyPERDataset(InMemoryDataset):
         # Compute all cantor ID edge pair combinations using awkward cartesian operation
         cantor_edge_pairs = HyPERDataset._awkward_nondiag_cartesian(self.cantor_node_ids)
         # Convert to singly-ragged ak.Array
-        cantor_edge_pairs_1flat = ak.flatten(edge_pairs)
+        cantor_edge_pairs_1flat = ak.flatten(cantor_edge_pairs)
         # Convert to required torch.tensor
         self.cantor_edge_index = HyPERDataset._map_nested_awkward_to_torch(cantor_edge_pairs_1flat)
 
