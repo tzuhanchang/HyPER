@@ -87,7 +87,6 @@ def Train(cfg : DictConfig) -> None:
         max_epochs = cfg['epochs'],
         callbacks = callbacks,
         logger = TensorBoardLogger(save_dir=cfg['savedir'], name="", log_graph=True),
-        gradient_clip_val=1
     )
 
     if cfg['continue_from_ckpt'] is not None:

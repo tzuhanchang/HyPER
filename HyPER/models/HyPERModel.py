@@ -1,7 +1,7 @@
 import torch
 
 from torch.nn import BCELoss, Sigmoid
-from torch.optim import lr_scheduler, AdamW
+from torch.optim import lr_scheduler, Adam
 from torch_geometric.utils import unbatch, degree
 from lightning import LightningModule
 from HyPER.models import MPNNs, HyperedgeModel, HyperedgeLoss, EdgeLoss, CombinedLoss
@@ -106,7 +106,7 @@ class HyPERModel(LightningModule):
 
     def configure_optimizers(self):
         if str(self.hparams.optimizer).lower() == 'adam':
-            optimizer = AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=0.01)
+            optimizer = Adam(self.parameters(), lr=self.hparams.lr)
         # --------- custom optimizers ---------
         # elif
         # -------------------------------------
