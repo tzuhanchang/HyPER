@@ -19,14 +19,20 @@ from .filter import TargetConnectivityFilter
 
 class HyPERDataset(InMemoryDataset):
     
-    """
-    Builds the graph dataset. Inherits from the PyTorchGeometric InMemoryDataset,
-        which comes with __init__ and process methods.
-        
-    Process is called when the data is loaded. 
-    It calls the various methods for building the nodes, edge and global parameters
+    r"""Concstructs a graph dataset (PyG-InMemoryDataset) and saves to file
+    process method is called on initialisation
     
+    Args:
+        root (str): dataset path.
+        name (str): input h5 filename, without ".h5 suffix".
+        transform ():
+        pre_transform(Optional[Callable): setting to transform the dataset before saving
+        pre_filter():
+        force_relaod(bool): Forces rebuilding of dataset if True, otherwise loads from saved
+        
+    Builds dataset for all graphs (events) simulataneously, leveraging torch and awkward functionalities
     """
+
     def __init__(
         self,
         root: str,
