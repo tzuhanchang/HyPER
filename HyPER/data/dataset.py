@@ -45,21 +45,19 @@ class HyPERDataset(InMemoryDataset):
         
         self.root = root
         self.name = name # This is the name of the file to be loaded
-        # self.names is a list of all names in the directory
         
-        self.names = [
+        # All files in the raw directory
+        self.files_in_raw = [
             osp.splitext(file)[0] for file in 
             listdir(osp.join(self.root, "raw"))]
-        # Filter self.names to only include the files that match input_name
-        self.names = [name for name in self.names if name == self.name]
-        # Throw an error if no file matching input_name exists
-        if len(self.names) == 0:
-            raise FileNotFoundError(f"No file matching '{self.input_name}' found in the 'raw' directory.")
         
-        file_index = [i for i in range(len(self.names))
-                            if self.names[i] == self.name]
-        assert len(file_index) == 1
-        self.file_index = file_index[0]
+        # Check that the specified file exists in the raw directory
+        if name in self.files_in_raw:
+            self.file_to_load = self.name
+        else:
+            raise ValueError(f"Error: '{self.name}' not found in the list of available files: {self.files_in_raw}")
+        
+        self.file_index = 0
 
         # Parse database config file, setting instance attributes
         parsed_inputs = HyPERDataset._parse_config_file(f"{self.root}/config.yaml")
@@ -129,11 +127,11 @@ class HyPERDataset(InMemoryDataset):
 
     @property
     def raw_file_names(self) -> List[str]:
-        return [f'{name}.h5' for name in self.names]
+        return [f'{name}.h5' for name in self.files_in_raw]
 
     @property
     def processed_file_names(self) -> List[str]:
-        return [f'{name}.pt' for name in self.names]
+        return [f'{name}.pt' for name in self.files_in_raw]
     
     
     @staticmethod
@@ -474,7 +472,7 @@ class HyPERDataset(InMemoryDataset):
         """
         
         # Load the file
-        filename = osp.join(self.raw_dir, self.raw_file_names[0])
+        filename = osp.join(self.raw_dir, f"{self.file_to_load}.h5")
         print(f"Parsing {filename}")
         with h5py.File(filename,'r') as file:
 
