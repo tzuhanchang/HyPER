@@ -55,7 +55,7 @@ class HyPERDataset(InMemoryDataset):
             listdir(self.raw_directory)]
         
         # Check that the specified file exists in the raw directory
-        if name in self.files_in_raw:
+        if self.filename in self.files_in_raw:
             self.file_to_load = self.filename
         else:
             raise ValueError(f"Error: '{self.filename}' not found in the list of available files: {self.files_in_raw}")
@@ -118,6 +118,14 @@ class HyPERDataset(InMemoryDataset):
         super().__init__(root, transform, pre_transform, pre_filter,
                          force_reload=force_reload)
         self.load(self.processed_paths[0])
+        
+    @property
+    def raw_file_names(self) -> List[str]:
+         return [f'{name}.h5' for name in self.files_in_raw]
+ 
+    @property
+    def processed_file_names(self) -> List[str]:
+         return [f'{name}.pt' for name in self.files_in_raw]
     
     @staticmethod
     def _parse_config_file(filename):
