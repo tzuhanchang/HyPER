@@ -69,10 +69,16 @@ class HyPERDataset(InMemoryDataset):
         self.input_id           = parsed_inputs['input']['nodes']
         self.input_pad_size     = parsed_inputs['input']['padding']
         
-        self.edge_targets       = list(parsed_inputs['target']['edge'].values())
-        self.hyperedge_targets  = list(parsed_inputs['target']['hyperedge'].values())
-        self.hyperedge_order = len(self.hyperedge_targets[0])
-        self.target_edge_ids, self.target_hyperedge_ids = self.assign_target_ids()
+        # Edge features
+        self.edge_target_dict = parsed_inputs['target']['edge']
+        self.N_edge_classes = len(self.edge_target_dict) + 1
+        
+        # Hyperedge features
+        self.hyperedge_target_dict = parsed_inputs['target']['hyperedge']
+        self.N_hyperedge_classes = len(self.hyperedge_target_dict) + 1
+
+        self.hyperedge_order = 3
+        self.target_edge_ids_dict, self.target_hyperedge_ids_dict = self.assign_target_ids()
     
         # Check 4-momentum inputs
         self._use_EEtaPhiPt = False
@@ -198,30 +204,37 @@ class HyPERDataset(InMemoryDataset):
             
         return edge_features_to_use 
 
-    def assign_target_ids(self) -> Tuple[List, List]:
+    def assign_target_ids(self) -> Tuple[dict, dict]:
         """
-        Assign each edge/hyperedge target with a unique ID.
+        Map the indices of the edge and hyperedge targets to their Cantor indices
+        """
+
         
-        Uses the Cantor function to define each ID, 
-        then parses the input edge and hyperedge targets to define target_edge_ids and target_hyperedge_ids
-        """
-        def compute_target_id(label: str) -> int:
-            k1, k2 = map(int, label.split('-'))
-            return (k1 + k2) * (k1 + k2 + 1) // 2 + k2
+        def compute_target_id_from_label_list(label_pair: tuple) -> list:
+            
+            """
+            Takes a list of labels of form X-Y and return the corresponding Cantor index
+            
+            Example:
+            ['1-1','1-2','1-3] --> [4,8,13]
+            """
+            cantor_pairing = lambda k1,k2: (k1+k2)*(k1+k2+1)/2 + k2
+            output = []
+            for label in label_pair:
+                k1, k2 = map(int, label.split('-'))
+                output.append(cantor_pairing(k1,k2))
+            return output
 
         # Compute target edge IDs
-        target_edge_ids = [
-            [compute_target_id(label) for label in target]
-            for target in self.edge_targets
-        ] if self.edge_targets else []
+        target_edge_ids_dict = {}
+        for edge_class , list_of_targets in self.edge_target_dict.items():
+            target_edge_ids_dict[edge_class] = [compute_target_id_from_label_list(label_pair) for label_pair in list_of_targets]
 
-        # Compute target hyperedge IDs
-        target_hyperedge_ids = [
-            [compute_target_id(label) for label in target]
-            for target in self.hyperedge_targets
-        ] if self.hyperedge_targets else []
+        target_hyperedge_ids_dict = {}
+        for hyperedge_class , list_of_targets in self.hyperedge_target_dict.items():
+            target_hyperedge_ids_dict[hyperedge_class] = [compute_target_id_from_label_list(label_list) for label_list in list_of_targets]
 
-        return target_edge_ids, target_hyperedge_ids
+        return target_edge_ids_dict, target_hyperedge_ids_dict
     
     def build_node_attributes(self,input_h5:h5py._hl.group.Group) -> List:
         
@@ -403,8 +416,9 @@ class HyPERDataset(InMemoryDataset):
         self.cantor_hyperedge_index = HyPERDataset._map_nested_awkward_to_torch(hyperedge_cantor_index_combinations)
         
     def find_matched_connections(self,
+                                 N_classes: int ,
                                  connection_input_cantor_tensor: torch.Tensor,
-                                 target_connection_ids: torch.Tensor) -> torch.Tensor:
+                                 target_connection_ids_dict: dict) -> torch.Tensor:
         
         """
         Assign target 1 or 0 to all connection objects (edges / hyperedges separately)
@@ -416,17 +430,19 @@ class HyPERDataset(InMemoryDataset):
         Returns:
         torch.Tensor of shape (N,1) for N connections (edges/hyperedges), with each element 1 or 0
         """
-
-        # Initialise the output edge labels as all zeros
-        output_labels = torch.zeros(connection_input_cantor_tensor.shape[1], 1, dtype=torch.float32)
+        # Initialise the output edge labels as all zeros        
+        output_labels = torch.zeros(N_classes , connection_input_cantor_tensor.shape[1],dtype=torch.float32)
         
-        # Loops over all set of targets, which corresponds to all candidate edges
-        for target in target_connection_ids:
-            # Compute whether the target indices are in connection_input_cantor_tensor
-            eid = torch.isin(connection_input_cantor_tensor,torch.tensor(target))
-            # If both feature, it's true
-            output_labels += 1.0*torch.all(eid,dim=0).reshape(-1,1)
+        for i, (edge_class,list_of_target_edges) in enumerate(target_connection_ids_dict.items()):
             
+        # Loops over all set of targets, which corresponds to all candidate edges
+            for target in list_of_target_edges:
+                # Compute whether the target indices are in connection_input_cantor_tensor
+                eid = torch.isin(connection_input_cantor_tensor,torch.tensor(target))
+                output_labels[i, :] += 1.0*torch.all(eid,dim=0)
+                
+        matched_mask = torch.sum(output_labels,dim=0)==1
+        output_labels[-1,~matched_mask] = 1
         return output_labels
             
     def generate_slices(self):
@@ -495,10 +511,13 @@ class HyPERDataset(InMemoryDataset):
         # Assign unique target ids
         # Constructing edge label tensor
         print("Building edge target labels")    
-        edge_attr_t = self.find_matched_connections(self.cantor_edge_index,self.target_edge_ids)
+        edge_attr_t = self.find_matched_connections(self.N_edge_classes,self.cantor_edge_index,self.target_edge_ids_dict)
+        print(edge_attr_t)
         # Constructing hyperedge label tensor
         print("Building hyperedge target labels")    
-        hyperedge_attr_t = self.find_matched_connections(self.cantor_hyperedge_index,self.target_hyperedge_ids)
+        hyperedge_attr_t = self.find_matched_connections(self.N_hyperedge_classes,self.cantor_hyperedge_index,self.target_hyperedge_ids_dict)
+        print(hyperedge_attr_t)
+        print(torch.count_nonzero(hyperedge_attr_t[0,:]))
         
         slices = self.generate_slices()   
             
