@@ -43,24 +43,27 @@ class HyPERDataset(InMemoryDataset):
         force_reload: bool = False,
     ) -> None:
         
-        self.root = root
-        self.name = name # This is the name of the file to be loaded
-        
+        self.root_dir = root
+        self.filename = name # This is the name of the file to be loaded
+        self.raw_directory        = osp.join(self.root_dir, 'raw')
+        self.processed_directroy  = osp.join(self.root_dir, 'processed')
+        self.file_index     = 0
+
         # All files in the raw directory
         self.files_in_raw = [
             osp.splitext(file)[0] for file in 
-            listdir(osp.join(self.root, "raw"))]
+            listdir(self.raw_directory)]
         
         # Check that the specified file exists in the raw directory
         if name in self.files_in_raw:
-            self.file_to_load = self.name
+            self.file_to_load = self.filename
         else:
-            raise ValueError(f"Error: '{self.name}' not found in the list of available files: {self.files_in_raw}")
+            raise ValueError(f"Error: '{self.filename}' not found in the list of available files: {self.files_in_raw}")
         
-        self.file_index = 0
-
+        if not osp.exists(osp.join(self.root_dir, "config.yaml")):
+            raise ValueError("config.yaml does not exist in the specified directory.")
         # Parse database config file, setting instance attributes
-        parsed_inputs = HyPERDataset._parse_config_file(f"{self.root}/config.yaml")
+        parsed_inputs = HyPERDataset._parse_config_file(f"{self.root_dir}/config.yaml")
         
         self.node_input_names   = list(parsed_inputs['input']['nodes'].keys())
         self.input_id           = parsed_inputs['input']['nodes']
@@ -114,25 +117,7 @@ class HyPERDataset(InMemoryDataset):
 
         super().__init__(root, transform, pre_transform, pre_filter,
                          force_reload=force_reload)
-        self.load(self.processed_paths[self.file_index])
-    
-    
-    @property
-    def raw_dir(self) -> str:
-        return osp.join(self.root, 'raw')
-
-    @property
-    def processed_dir(self) -> str:
-        return osp.join(self.root, 'processed')
-
-    @property
-    def raw_file_names(self) -> List[str]:
-        return [f'{name}.h5' for name in self.files_in_raw]
-
-    @property
-    def processed_file_names(self) -> List[str]:
-        return [f'{name}.pt' for name in self.files_in_raw]
-    
+        self.load(self.processed_paths[0])
     
     @staticmethod
     def _parse_config_file(filename):
@@ -472,7 +457,7 @@ class HyPERDataset(InMemoryDataset):
         """
         
         # Load the file
-        filename = osp.join(self.raw_dir, f"{self.file_to_load}.h5")
+        filename = osp.join(self.raw_directory, f"{self.file_to_load}.h5")
         print(f"Parsing {filename}")
         with h5py.File(filename,'r') as file:
 
