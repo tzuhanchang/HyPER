@@ -442,7 +442,7 @@ class HyPERDataset(InMemoryDataset):
                 print(torch.count_nonzero(mask))
                 output_labels[mask] = i+1
 
-        return output_labels
+        return output_labels.squeeze()
             
     def generate_slices(self):
         

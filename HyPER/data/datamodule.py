@@ -70,7 +70,8 @@ class HyPERDataModule(LightningDataModule):
         self.edge_in_channels   = len(parsed_inputs['input']['edge_features'])
         self.global_in_channels = len(parsed_inputs['input']['global_features'])
         self.edge_out_channels  = len(parsed_inputs['target']['edge']) + 1
-
+        print(self.edge_out_channels)
+        input()
         self.index_range = None
     
     @staticmethod
@@ -98,7 +99,8 @@ class HyPERDataModule(LightningDataModule):
             else:
                 self.train_data = HyPERDataset(root=self.root, name=self.train_set)
                 self.val_data   = HyPERDataset(root=self.root, name=self.val_set)
-                
+            # print(self.train_data.edge_attr_t)
+            # input()                
             # self.node_in_channels   = self.train_data.x.shape[1]
             # self.edge_in_channels   = self.train_data.edge_attr.shape[1]
             # self.global_in_channels = self.train_data.u.shape[1]

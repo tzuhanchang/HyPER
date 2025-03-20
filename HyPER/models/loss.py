@@ -20,9 +20,9 @@ def EdgeLoss(edge_attr_out: Tensor, edge_attr_t: Tensor, edge_attr_batch: Tensor
 
     :rtype: :class:`Tensor`
     """
-    l = criterion(edge_attr_out, edge_attr_t.float())
-    print(l)
-    input()
+    l = criterion(edge_attr_out, edge_attr_t.long().squeeze())
+    #print(l)
+    #input()
     return scatter(l.flatten(), edge_attr_batch, reduce=reduction)
 
 
