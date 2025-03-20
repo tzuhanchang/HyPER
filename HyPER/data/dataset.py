@@ -416,22 +416,21 @@ class HyPERDataset(InMemoryDataset):
         self.cantor_hyperedge_index = HyPERDataset._map_nested_awkward_to_torch(hyperedge_cantor_index_combinations)
         
     def find_matched_connections(self,
-                                 N_classes: int ,
-                                 connection_input_cantor_tensor: torch.Tensor,
-                                 target_connection_ids_dict: dict) -> torch.Tensor:
+                                connection_input_cantor_tensor: torch.Tensor,
+                                    target_connection_ids_dict: dict) -> torch.Tensor:
         
         """
-        Assign target 1 or 0 to all connection objects (edges / hyperedges separately)
+        Assigns class label (0,1,...,M) for M classes of edge
         
         Parameters:
         - connection_input_cantor_tensor (torch.Tensor): tensor containing the cantor indices of all edges or hyperedges
         - target_connection_ids (torch.Tensor): target_edge_ids / target_hyperedge_ids
 
         Returns:
-        torch.Tensor of shape (N,1) for N connections (edges/hyperedges), with each element 1 or 0
+        torch.Tensor of shape (N,1) for N connections (edges/hyperedges), with each element in (0,1,...,M)
         """
         # Initialise the output edge labels as all zeros        
-        output_labels = torch.zeros(N_classes , connection_input_cantor_tensor.shape[1],dtype=torch.float32)
+        output_labels = torch.zeros(connection_input_cantor_tensor.shape[1],1,dtype=torch.float32)
         
         for i, (edge_class,list_of_target_edges) in enumerate(target_connection_ids_dict.items()):
             
@@ -439,10 +438,10 @@ class HyPERDataset(InMemoryDataset):
             for target in list_of_target_edges:
                 # Compute whether the target indices are in connection_input_cantor_tensor
                 eid = torch.isin(connection_input_cantor_tensor,torch.tensor(target))
-                output_labels[i, :] += 1.0*torch.all(eid,dim=0)
-                
-        matched_mask = torch.sum(output_labels,dim=0)==1
-        output_labels[-1,~matched_mask] = 1
+                mask = torch.all(eid, dim=0)  
+                print(torch.count_nonzero(mask))
+                output_labels[mask] = i+1
+
         return output_labels
             
     def generate_slices(self):
@@ -511,11 +510,11 @@ class HyPERDataset(InMemoryDataset):
         # Assign unique target ids
         # Constructing edge label tensor
         print("Building edge target labels")    
-        edge_attr_t = self.find_matched_connections(self.N_edge_classes,self.cantor_edge_index,self.target_edge_ids_dict)
+        edge_attr_t = self.find_matched_connections(self.cantor_edge_index,self.target_edge_ids_dict)
         print(edge_attr_t)
         # Constructing hyperedge label tensor
         print("Building hyperedge target labels")    
-        hyperedge_attr_t = self.find_matched_connections(self.N_hyperedge_classes,self.cantor_hyperedge_index,self.target_hyperedge_ids_dict)
+        hyperedge_attr_t = self.find_matched_connections(self.cantor_hyperedge_index,self.target_hyperedge_ids_dict)
         print(hyperedge_attr_t)
         print(torch.count_nonzero(hyperedge_attr_t[0,:]))
         
