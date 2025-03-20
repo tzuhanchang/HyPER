@@ -161,6 +161,7 @@ class HyPERModel(LightningModule):
         # Validation Loss Calculation
         if str(self.hparams.criterion_edge).lower() == 'bce':
             # criterion_edge = BCELoss(reduction='none')
+            criterion_edge = CrossEntropyLoss(reduction='none')
         # ------- custom loss functions -------
         # elif
         # -------------------------------------
