@@ -1,14 +1,14 @@
 import torch
 
 from torch import Tensor
-from torch.nn import BCELoss
+from torch.nn import BCELoss, CrossEntropyLoss
 from torch_scatter import scatter
 
 from typing import Optional
 
 
 def EdgeLoss(edge_attr_out: Tensor, edge_attr_t: Tensor, edge_attr_batch: Tensor,
-             criterion: Optional[callable] = BCELoss(reduction='none'), reduction: Optional[str] = 'mean') -> Tensor:
+             criterion: Optional[callable] = CrossEntropyLoss(reduction='none'), reduction: Optional[str] = 'mean') -> Tensor:
     r"""Calculate per graph edge loss.
 
     Args:
@@ -21,6 +21,8 @@ def EdgeLoss(edge_attr_out: Tensor, edge_attr_t: Tensor, edge_attr_batch: Tensor
     :rtype: :class:`Tensor`
     """
     l = criterion(edge_attr_out, edge_attr_t.float())
+    print(l)
+    input()
     return scatter(l.flatten(), edge_attr_batch, reduce=reduction)
 
 

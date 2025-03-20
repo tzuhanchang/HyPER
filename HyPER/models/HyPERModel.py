@@ -1,6 +1,6 @@
 import torch
 
-from torch.nn import BCELoss, Sigmoid
+from torch.nn import BCELoss, Sigmoid, CrossEntropyLoss
 from torch.optim import lr_scheduler, Adam
 from torch_geometric.utils import unbatch, degree
 from lightning import LightningModule
@@ -36,6 +36,8 @@ class HyPERModel(LightningModule):
             node_in_channels,
             edge_in_channels,
             global_in_channels,
+            final_edge_out_channels:        Optional[int] = 2,
+            final_hyperedge_out_channels:   Optional[int] = 3,
             message_feats: Optional[int] = 32,
             dropout: Optional[float] = 0.01,
             message_passing_recurrent: Optional[int] = 3,
@@ -66,7 +68,7 @@ class HyPERModel(LightningModule):
                 setattr(self, 'MessagePassing' + str(i),
                         MPNNs(
                             self.hparams.message_feats, self.hparams.message_feats, self.hparams.message_feats,
-                            node_out_channels = self.hparams.message_feats, edge_out_channels = 1, global_out_channels = self.hparams.message_feats,
+                            node_out_channels = self.hparams.message_feats, edge_out_channels = final_edge_out_channels, global_out_channels = self.hparams.message_feats,
                             message_feats = self.hparams.message_feats, dropout = self.hparams.dropout, activation = Sigmoid(), p_out = 'edge'
                         )
                 )
@@ -128,7 +130,8 @@ class HyPERModel(LightningModule):
 
         # Train Loss Calculation
         if str(self.hparams.criterion_edge).lower() == 'bce':
-            criterion_edge = BCELoss(reduction='none')
+            # criterion_edge = BCELoss(reduction='none')
+            criterion_edge = CrossEntropyLoss(reduction='none')
         # ------- custom loss functions -------
         # elif
         # -------------------------------------
@@ -157,7 +160,7 @@ class HyPERModel(LightningModule):
 
         # Validation Loss Calculation
         if str(self.hparams.criterion_edge).lower() == 'bce':
-            criterion_edge = BCELoss(reduction='none')
+            # criterion_edge = BCELoss(reduction='none')
         # ------- custom loss functions -------
         # elif
         # -------------------------------------

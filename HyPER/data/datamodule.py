@@ -65,10 +65,10 @@ class HyPERDataModule(LightningDataModule):
         self.percent_valid_samples = percent_valid_samples
         
         # Would prefer if these were either read directly from HyPERDataset or 
-        parsed_inputs = HyPERDataset._parse_config_file(f"{self.root}/config.yaml")
-        self.node_in_channels   = len(parsed_inputs['input']['node_features']) + 1
-        self.edge_in_channels   = len(parsed_inputs['input']['edge_features'])
-        self.global_in_channels = len(parsed_inputs['input']['global_features'])
+        # parsed_inputs = HyPERDataset._parse_config_file(f"{self.root}/config.yaml")
+        # self.node_in_channels   = len(parsed_inputs['input']['node_features']) + 1
+        # self.edge_in_channels   = len(parsed_inputs['input']['edge_features'])
+        # self.global_in_channels = len(parsed_inputs['input']['global_features'])
 
         self.index_range = None
     
@@ -97,6 +97,19 @@ class HyPERDataModule(LightningDataModule):
             else:
                 self.train_data = HyPERDataset(root=self.root, name=self.train_set)
                 self.val_data   = HyPERDataset(root=self.root, name=self.val_set)
+                
+                
+            self.node_in_channels   = self.train_data.x.shape[1]
+            self.edge_in_channels   = self.train_data.edge_attr.shape[1]
+            self.global_in_channels = self.train_data.u.shape[1]
+            self.edge_out_channels  = self.train_data.edge_attr_t.shape[0]
+            
+            print("channels")
+            print(self.node_in_channels)
+            print(self.edge_in_channels)
+            print(self.global_in_channels)
+            print(self.edge_out_channels)
+            input()
 
             # Limit training dataset size to self.max_n_events
             if self.max_n_events == -1:
