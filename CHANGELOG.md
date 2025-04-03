@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  - Add MacOS support (CPU only) ([#57](https://github.com/tzuhanchang/HyPER/pull/57))
 
 ### Changed
+ - Build `HyPER.data.dataset` in a parallelised way for faster execution ([#68](https://github.com/tzuhanchang/HyPER/pull/68))
+ - Altered dataset config YAML ([#68](https://github.com/tzuhanchang/HyPER/pull/68))
  - Use `torch_geometric.data.InMemoryDataset` as dataset base class ([#68](https://github.com/tzuhanchang/HyPER/pull/68))
  - Update imports of Pytorch Lightning ([#59](https://github.com/tzuhanchang/HyPER/pull/59))
  - Customize `softmax` function ([#36](https://github.com/tzuhanchang/HyPER/pull/36))
