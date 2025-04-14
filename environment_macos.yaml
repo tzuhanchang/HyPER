@@ -25,3 +25,4 @@ dependencies:
     - onnx
     - onnxruntime
     - onnxscript
+    - vector

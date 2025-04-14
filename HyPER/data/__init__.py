@@ -1,9 +1,9 @@
-from .dataset import GraphDataset
+from .dataset import HyPERDataset
 from .sampler import EventSampler
 from .datamodule import HyPERDataModule
 
 __all__ = [
-    'GraphDataset',
+    'HyPERDataset',
     'EventSampler',
     'HyPERDataModule'
 ]
