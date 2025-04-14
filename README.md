@@ -17,7 +17,9 @@
 ### Dataset
 
 HyPER dataset is currently based on `torch_geometric.data.InMemoryDataset`.
-Graphs are pre-processed from the HDF5 files provided and then load into the CPU memory.
+Graphs are pre-processed from the HDF5 files provided and loaded into the CPU memory.
+
+**Important Note** Since the HyPER dataset builds all graphs simultaneously, memory issues can be encountered when working with large datasets. We advise that training datasets should not exceed ~3M events.
 
 <details>
 
