@@ -1,12 +1,12 @@
 Build Your Own Dataset
 =======================
 
-In high energy physics, commonly, data is stored in a `*.root` file. In this tutorial, you will learn the dataset structure of HyPER and we will show you how to build your own `GraphDataset` from `*.root` files. We are going to use semi-leptonic ttbar events as an example for this tutorial.
+High energy physics data is commonly stored in [ROOT](https://root.cern) files, which extension is `.root`. In this tutorial, you will learn the dataset structure of HyPER and we will show you how to build your own `GraphDataset` from ROOT files. We are going to use semi-leptonic ttbar events as an example for this tutorial. In ttbar semileptonic events one top decays hadronically, producing one b-jet and two ligh/charm jets; and the other top decays leptonically, producing one b-jet, one lepton and one neutrino.
 
 Dataset Structure
 -----------
 
-HyPER uses `HDF5` to store data, it contains two data groups: `INPUTS` and `LABELS`. The structure of our dataset has is as follows:
+HyPER uses `HDF5` to store data, it contains two data groups: `INPUTS` and `LABELS`. The structure of our dataset is as follows:
 ``` yaml
 |- INPUTS           |- LABELS
 |--- jet            |--- VertexID
@@ -15,14 +15,14 @@ HyPER uses `HDF5` to store data, it contains two data groups: `INPUTS` and `LABE
 |--- global
 |--- ...
 ```
-Datasets: `jet`, `electron` and `muon` have same size along `dim=1`, which are the "features" of these objects.
-`global` dataset stores event-wise information.
-Each final state is assigned with a unique integer that is used for the identification of target edges and hyperedges, they are stored in `VertexID`.
+Datasets: The `jet`, `electron` and `muon` datasets have the same size along `dim=1`, which are the "features" of these objects.
+The `global` dataset stores event-wise information.
+Each final state is assigned with a unique integer that is used for the identification of target edges and hyperedges, they are stored in the `VertexID` dataset.
 An optional `IndexSelect` dataset can be added, it contains boolean values representing if an event is fully matched.
 
 !!! Note
 
-    Some features are only available for certain objects, such as "charge" for leptons (not jets), "btag" for jets (not leptons). We recommend the use of `0` as a placeholder for the missing features in such case.
+    Some features are only available for certain objects, such as "charge" for leptons (but not for jets), "btag" for jets (but not for leptons). We recommend using `0` as a placeholder for the missing features in such case.
 
 
 Each dataset has a corresponding configuration file `db.yaml`, it tells HyPER how to interpertate the data:
