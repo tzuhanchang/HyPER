@@ -87,16 +87,20 @@ def Predict(cfg : DictConfig) -> None:
             graphedge_out.append(edge_attrs.flatten().tolist())
             graphedge_vct.append([list(x) for x in combinations(encodings[j].cpu().flatten().tolist(),r=2)])
 
-    raw_output_dict = {}
-            raw_output_dict["HyPER_HE_RAW"]: hyperedge_out
-            raw_output_dict["HyPER_GE_RAW"]: graphedge_out
-            raw_output_dict["HyPER_HE_VCT"]: hyperedge_vct
-            raw_output_dict["HyPER_GE_VCT"]: graphedge_vct
-            raw_output_dict["HyPER_HE_IDX"]: hyperedges
-            raw_output_dict["HyPER_GE_IDX"]: graphedges   
+    edge_dict = {}
+            raw_output_dict["IDX"]: ak.Array(graphedges)
+            raw_output_dict["RAW"]: ak.Array(graphedge_out)
+            raw_output_dict["VCT"]: ak.Array(graphedge_vct)
+            
+    hyperedge_dict = {}
+            raw_output_dict["IDX"]: ak.Array(hyperedges)
+            raw_output_dict["RAW"]: ak.Array(hyperedge_out)
+            raw_output_dict["VCT"]: ak.Array(hyperedge_vct)
 
-    with uproot.recreate(f"ROOToutput.root") as file:
-        file["HyPER"]  = raw_output_dict)
+    savename = cfg['predict_output'])[:-3]
+    with uproot.recreate(f"{savename}_RAWoutput.root") as file:
+        file["Edge"]      = edge_dict
+        file["Hyperedge"] = hyperedge_dict
 
     results = pd.DataFrame(
         {
@@ -110,7 +114,6 @@ def Predict(cfg : DictConfig) -> None:
     )    
 
     reconstructed_results = eval(cfg['topology'])(results)
-    
 
     if cfg['predict_output'] is None:
         warnings.warn("No output path is provided in `predict_output`, use default: `output.h5`.")
