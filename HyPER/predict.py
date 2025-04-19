@@ -7,6 +7,7 @@ import pandas as pd
 import h5py 
 import numpy as np
 import lightning.pytorch as pl
+import awkward as ak
 
 from tqdm import tqdm
 from itertools import permutations, combinations
@@ -86,9 +87,16 @@ def Predict(cfg : DictConfig) -> None:
             graphedge_out.append(edge_attrs.flatten().tolist())
             graphedge_vct.append([list(x) for x in combinations(encodings[j].cpu().flatten().tolist(),r=2)])
 
-    print(hyperedge_out)
-    input()
+    raw_output_dict = {}
+            raw_output_dict["HyPER_HE_RAW"]: hyperedge_out
+            raw_output_dict["HyPER_GE_RAW"]: graphedge_out
+            raw_output_dict["HyPER_HE_VCT"]: hyperedge_vct
+            raw_output_dict["HyPER_GE_VCT"]: graphedge_vct
+            raw_output_dict["HyPER_HE_IDX"]: hyperedges
+            raw_output_dict["HyPER_GE_IDX"]: graphedges   
 
+    with uproot.recreate(f"ROOToutput.root") as file:
+        file["HyPER"]  = raw_output_dict)
 
     results = pd.DataFrame(
         {
@@ -99,15 +107,7 @@ def Predict(cfg : DictConfig) -> None:
             "HyPER_HE_IDX": hyperedges,
             "HyPER_GE_IDX": graphedges   
         }
-    )
-    
-    with h5py.File(f"{cfg['predict_output']}_rawoutput.h5", "w") as f:
-        f.create_dataset("HyPER_HE_RAW", data=np.array(hyperedge_out))
-        f.create_dataset("HyPER_GE_RAW", data=np.array(graphedge_out))
-        f.create_dataset("HyPER_HE_VCT", data=np.array(hyperedge_vct))
-        f.create_dataset("HyPER_GE_VCT", data=np.array(graphedge_vct))
-        f.create_dataset("HyPER_HE_IDX", data=np.array(hyperedges))
-        f.create_dataset("HyPER_GE_IDX", data=np.array(graphedges))    
+    )    
 
     reconstructed_results = eval(cfg['topology'])(results)
     
