@@ -99,6 +99,14 @@ def Predict(cfg : DictConfig) -> None:
 
     results = eval(cfg['topology'])(results)
     
+    with h5py.File(f"{cfg['predict_output']}_rawoutput.h5", "w") as f:
+        f.create_dataset("HyPER_HE_RAW", data=np.array(hyperedge_out))
+        f.create_dataset("HyPER_GE_RAW", data=np.array(graphedge_out))
+        f.create_dataset("HyPER_HE_VCT", data=np.array(hyperedge_vct))
+        f.create_dataset("HyPER_GE_VCT", data=np.array(graphedge_vct))
+        f.create_dataset("HyPER_HE_IDX", data=np.array(hyperedges))
+        f.create_dataset("HyPER_GE_IDX", data=np.array(graphedges))    
+    
     if cfg['predict_output'] is None:
         warnings.warn("No output path is provided in `predict_output`, use default: `output.h5`.")
         ResultWriter(results, "output.h5")
