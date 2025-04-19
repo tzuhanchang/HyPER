@@ -60,6 +60,8 @@ def Predict(cfg : DictConfig) -> None:
     )
 
     out = trainer.predict(model, datamodule=datamodule)
+    
+    print(out)
 
     hyperedge_out = []
     graphedge_out = []
