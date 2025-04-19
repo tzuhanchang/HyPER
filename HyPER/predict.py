@@ -86,6 +86,10 @@ def Predict(cfg : DictConfig) -> None:
             graphedge_out.append(edge_attrs.flatten().tolist())
             graphedge_vct.append([list(x) for x in combinations(encodings[j].cpu().flatten().tolist(),r=2)])
 
+    print(hyperedge_out)
+    input()
+
+
     results = pd.DataFrame(
         {
             "HyPER_HE_RAW": hyperedge_out,
