@@ -61,8 +61,6 @@ def Predict(cfg : DictConfig) -> None:
 
     out = trainer.predict(model, datamodule=datamodule)
     
-    print(out)
-
     hyperedge_out = []
     graphedge_out = []
     hyperedge_vct = []
@@ -96,8 +94,6 @@ def Predict(cfg : DictConfig) -> None:
             "HyPER_GE_IDX": graphedges   
         }
     )
-
-    results = eval(cfg['topology'])(results)
     
     with h5py.File(f"{cfg['predict_output']}_rawoutput.h5", "w") as f:
         f.create_dataset("HyPER_HE_RAW", data=np.array(hyperedge_out))
@@ -106,17 +102,20 @@ def Predict(cfg : DictConfig) -> None:
         f.create_dataset("HyPER_GE_VCT", data=np.array(graphedge_vct))
         f.create_dataset("HyPER_HE_IDX", data=np.array(hyperedges))
         f.create_dataset("HyPER_GE_IDX", data=np.array(graphedges))    
+
+    reconstructed_results = eval(cfg['topology'])(results)
     
+
     if cfg['predict_output'] is None:
         warnings.warn("No output path is provided in `predict_output`, use default: `output.h5`.")
-        ResultWriter(results, "output.h5")
+        ResultWriter(reconstructed_results, "output.h5")
     else:
         if str(cfg['predict_output'])[-3:] == '.h5':
             warnings.warn("Saving results to a `.h5` file, RAW outputs will not be saved. If you want to save all output, use `.pkl` extension.", UserWarning)
-            ResultWriter(results, str(cfg['predict_output']))
+            ResultWriter(reconstruced_results, str(cfg['predict_output']))
         elif str(cfg['predict_output'])[-4:] == '.pkl':
             warnings.warn("Pickling all results (including RAW network outputs), your performance may suffer.", UserWarning)
-            results.to_pickle(str(cfg['predict_output']))
+            reconstructed_results.to_pickle(str(cfg['predict_output']))
         else:
             raise ValueError("You must provide a file extension: `.h5` or `.pkl`.")
 
