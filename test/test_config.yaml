@@ -1,8 +1,7 @@
-train_set:        "test/ttbar-allhad_test.h5"
+dataset:          "test/datasets/ttbar_allhad"
+train_set:        "test"
 val_set:          null
-db_config:        "test/test_db.yaml"
 train_val_split:  0.5
-all_matched:      False
 max_n_events:     -1
 drop_last:        False
 
@@ -30,7 +29,7 @@ num_workers:  2
 savedir: "HyPER_logs"
 continue_from_ckpt: null
 
-predict_set:    "test/ttbar-allhad_test.h5"
+predict_set:    "test"
 predict_with:   "cpu"
 predict_model:  "HyPER_logs/version_0"
 predict_output: "out.h5"
