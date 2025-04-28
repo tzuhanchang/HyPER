@@ -6,51 +6,52 @@ Once dataset(s) is constructed following [this instruction](dataset.md), network
 Configuration
 -----------
 
-We provide a default configuration file, `examples/default.yaml`, which you can base on your experiment on:
+We provide a default configuration file, `config/default.yaml`:
 ```yaml
-train_set:              null
-val_set:                null
-db_config:              "db.yaml"
-train_val_split:        0.9
-all_matched:            True
-max_n_events:           -1
-drop_last:              True
+dataset:          null
+train_set:        null
+val_set:          null
+train_val_split:  0.9
+max_n_events:     -1
+drop_last:        False
 
-num_message_layers:     3
-hyperedge_order:        3
-message_feats:          64
-hyperedge_feats:        128
-dropout:                0.01
+num_message_layers:   3
+hyperedge_order:      3
+message_feats:        64
+hyperedge_feats:      128
+dropout:              0.01
 
-optimizer:              "Adam"
-learning_rate:          0.0003
-criterion_edge:         "BCE"
-criterion_hyperedge:    "BCE"
-loss_reduction:         "mean"
-alpha:                  0.8
+optimizer:            "Adam"
+learning_rate:        0.0003
+criterion_edge:       "BCE"
+criterion_hyperedge:  "BCE"
+loss_reduction:       "mean"
+alpha:                0.8
 
-epochs:                 500
-batch_size:             4096
+epochs:       500
+patience:     50
+batch_size:   4096
 
-device:                 "gpu"
-num_devices:            1
-num_workers:            12
+device:       "gpu"
+num_devices:   1
 
-savedir:                "HyPER_logs"
-continue_from_ckpt:     null
+savedir: "HyPER_logs"
+continue_from_ckpt: null
 
-predict_set:            null
-predict_with:           "cpu"
-predict_model:          null
-predict_output:         null
-topology:               ttbar_allhad
+predict_set:    null
+predict_with:   "cpu"
+predict_model:  null
+predict_output: null
+topology: ttbar_allhad
+
+onnx_output:   "HyPER.onnx"
+convert_model: null
 ```
 You can overwrite any option in the configuration file to maximise HyPER's performance on your analysis.
 
 !!! Note
 
-    We are on the process of building a hyperparameter tuning framework with [Optuna](https://optuna.org).
-    For the latest information on this, checkout this pull request [#16](https://github.com/tzuhanchang/HyPER/pull/16).
+    The `PyTorch` to `ONNX` model conversion script does not currently work on the main branch. There is an existing solution, please contact the devs if you need to do such a conversion.
 
 It's worth noting that in the case of top quark, the `hyperedge_order` is set to 3 because of the number of final states associated with it. But it could be more than 3 in cases of some BSM processes, such as RPV STop decays.
 

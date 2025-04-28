@@ -12,8 +12,6 @@
 
 ## Quick Start
 
-> We have removed graph building precedure following [#4](https://github.com/tzuhanchang/HyPER/pull/4). `GraphDataset` now loads flat data from a `HDF5` file and computes graph structure on the fly. We no longer recommend nor provide support for [release v0.1](https://github.com/tzuhanchang/HyPER/releases/tag/v0.1).
-
 ### Dataset
 
 HyPER dataset is currently based on `torch_geometric.data.InMemoryDataset`.
