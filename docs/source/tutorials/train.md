@@ -51,7 +51,7 @@ You can overwrite any option in the configuration file to maximise HyPER's perfo
 
 !!! Note
 
-    The `PyTorch` to `ONNX` model conversion script does not currently work on the main branch. There is an existing solution, please contact the devs if you need to do such a conversion.
+    The `PyTorch` to `ONNX` model conversion script does not currently work on the main branch. If you need to do such a conversion, please use the following [HyPER repository](https://github.com/diegobaronm/HyPER_ONNX). It is meant only for exporting, not training or predicting HyPER scores.
 
 It's worth noting that in the case of top quark, the `hyperedge_order` is set to 3 because of the number of final states associated with it. But it could be more than 3 in cases of some BSM processes, such as RPV STop decays.
 
