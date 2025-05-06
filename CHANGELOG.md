@@ -6,12 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+ - Add topology: `ttbar_single_lep` ([#70](https://github.com/tzuhanchang/HyPER/pull/70))
  - Add topology: `FourTop_allhad` ([#45](https://github.com/tzuhanchang/HyPER/pull/45))
  - Implement HyPER `ONNX` model export ([#43](https://github.com/tzuhanchang/HyPER/pull/43))
  - Add option to save results to a `HDF5` file when `.h5` extension is used in `predict_output` ([#41](https://github.com/tzuhanchang/HyPER/pull/41))
  - Add MacOS support (CPU only) ([#57](https://github.com/tzuhanchang/HyPER/pull/57))
 
 ### Changed
+ - Update the documentation for the new dataset structure ([#71](https://github.com/tzuhanchang/HyPER/pull/71))
  - Build `HyPER.data.dataset` in a parallelised way for faster execution ([#68](https://github.com/tzuhanchang/HyPER/pull/68))
  - Altered dataset config YAML ([#68](https://github.com/tzuhanchang/HyPER/pull/68))
  - Use `torch_geometric.data.InMemoryDataset` as dataset base class ([#68](https://github.com/tzuhanchang/HyPER/pull/68))
