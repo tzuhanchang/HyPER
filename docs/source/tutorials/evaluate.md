@@ -14,7 +14,7 @@ predict_model:          null
 predict_output:         null
 topology:               ttbar_allhad
 ```
-where you can provide the dataset and path to the HyPER model you want to use for the prediction. By default, the frist model you trained is saved to `HyPER_logs/version_0`. The output of the prediction is a `.pkl` file.
+where you can provide the dataset and path to the HyPER model you want to use for the prediction. By default, the first model you trained is saved to `HyPER_logs/version_0`. The output of the prediction is a `.pkl` file.
 
 With configuration ready, running event reconstruction via:
 ```bash
