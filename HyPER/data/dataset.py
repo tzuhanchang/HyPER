@@ -443,11 +443,15 @@ class HyPERDataset(InMemoryDataset):
         
         choose_2 = lambda t: t * (t - 1) // 2
         choose_3 = lambda t: t * (t - 1) * (t - 2) // 6
+        choose_4 = lambda t: t * (t - 1) * (t - 2) * (t - 3) // 24
 
         slice_x_index         = torch.cat((torch.tensor([0]),torch.cumsum(self.Nobjects, dim=0)))
         slice_u_index         = torch.arange(0,len(self.Nobjects)+1)
         slice_edge_index      = torch.cat((torch.tensor([0]),torch.cumsum(2*choose_2(self.Nobjects), dim=0)))
-        slice_hyperedge_index = torch.cat((torch.tensor([0]),torch.cumsum(choose_3(self.Nobjects), dim=0)))
+        if self.hyperedge_order == 3:
+            slice_hyperedge_index = torch.cat((torch.tensor([0]),torch.cumsum(choose_3(self.Nobjects), dim=0)))
+        elif self.hyperedge_order == 4:
+            slice_hyperedge_index = torch.cat((torch.tensor([0]),torch.cumsum(choose_4(self.Nobjects), dim=0)))
         
         return {'x'                 : slice_x_index, 
                 'edge_index'        : slice_edge_index, 
@@ -491,7 +495,7 @@ class HyPERDataset(InMemoryDataset):
         self.build_edge_indices()
         # Constructing hyperedge index tensor
         print("Building hyperedge indices")    
-        self.build_hyperedge_indices(hyperedge_cardinality=3)
+        self.build_hyperedge_indices(hyperedge_cardinality=self.hyperedge_order)
         # Assign unique target ids
         # Constructing edge label tensor
         print("Building edge target labels")    
