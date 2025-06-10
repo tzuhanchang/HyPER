@@ -19,14 +19,20 @@ from .filter import TargetConnectivityFilter
 
 class HyPERDataset(InMemoryDataset):
     
-    """
-    Builds the graph dataset. Inherits from the PyTorchGeometric InMemoryDataset,
-        which comes with __init__ and process methods.
-        
-    Process is called when the data is loaded. 
-    It calls the various methods for building the nodes, edge and global parameters
+    r"""Concstructs a graph dataset (PyG-InMemoryDataset) and saves to file
+    process method is called on initialisation
     
+    Args:
+        root (str): dataset path.
+        name (str): input h5 filename, without ".h5 suffix".
+        transform ():
+        pre_transform(Optional[Callable): setting to transform the dataset before saving
+        pre_filter():
+        force_relaod(bool): Forces rebuilding of dataset if True, otherwise loads from saved
+        
+    Builds dataset for all graphs (events) simulataneously, leveraging torch and awkward functionalities
     """
+
     def __init__(
         self,
         root: str,
@@ -37,26 +43,27 @@ class HyPERDataset(InMemoryDataset):
         force_reload: bool = False,
     ) -> None:
         
-        self.root = root
-        self.name = name # This is the name of the file to be loaded
-        # self.names is a list of all names in the directory
-        
-        self.names = [
-            osp.splitext(file)[0] for file in 
-            listdir(osp.join(self.root, "raw"))]
-        # Filter self.names to only include the files that match input_name
-        self.names = [name for name in self.names if name == self.name]
-        # Throw an error if no file matching name exists
-        if len(self.names) == 0:
-            raise FileNotFoundError(f"No file matching '{self.name}' found in the 'raw' directory.")
-        
-        file_index = [i for i in range(len(self.names))
-                            if self.names[i] == self.name]
-        assert len(file_index) == 1
-        self.file_index = file_index[0]
+        self.root_dir = root
+        self.filename = name # This is the name of the file to be loaded
+        self.raw_directory        = osp.join(self.root_dir, 'raw')
+        self.processed_directroy  = osp.join(self.root_dir, 'processed')
+        self.file_index     = 0
 
+        # All files in the raw directory
+        self.files_in_raw = [
+            osp.splitext(file)[0] for file in 
+            listdir(self.raw_directory)]
+        
+        # Check that the specified file exists in the raw directory
+        if self.filename in self.files_in_raw:
+            self.file_to_load = self.filename
+        else:
+            raise ValueError(f"Error: '{self.filename}' not found in the list of available files: {self.files_in_raw}")
+        
+        if not osp.exists(osp.join(self.root_dir, "config.yaml")):
+            raise ValueError("config.yaml does not exist in the specified directory.")
         # Parse database config file, setting instance attributes
-        parsed_inputs = HyPERDataset._parse_config_file(f"{self.root}/config.yaml")
+        parsed_inputs = HyPERDataset._parse_config_file(f"{self.root_dir}/config.yaml")
         
         self.node_input_names   = list(parsed_inputs['input']['nodes'].keys())
         self.input_id           = parsed_inputs['input']['nodes']
@@ -110,25 +117,15 @@ class HyPERDataset(InMemoryDataset):
 
         super().__init__(root, transform, pre_transform, pre_filter,
                          force_reload=force_reload)
-        self.load(self.processed_paths[self.file_index])
-    
-    
-    @property
-    def raw_dir(self) -> str:
-        return osp.join(self.root, 'raw')
-
-    @property
-    def processed_dir(self) -> str:
-        return osp.join(self.root, 'processed')
-
+        self.load(self.processed_paths[0])
+        
     @property
     def raw_file_names(self) -> List[str]:
-        return [f'{name}.h5' for name in self.names]
-
+         return [f'{name}.h5' for name in self.files_in_raw]
+ 
     @property
     def processed_file_names(self) -> List[str]:
-        return [f'{name}.pt' for name in self.names]
-    
+         return [f'{name}.pt' for name in self.files_in_raw]
     
     @staticmethod
     def _parse_config_file(filename):
@@ -340,7 +337,6 @@ class HyPERDataset(InMemoryDataset):
         truthlabels_np = np.concatenate(truth_label_imported,axis=1)
         # Convert to torch tensor
         truthlabels = torch.tensor(truthlabels_np)
-
         # Remove padded events (padded events have to be hard-coded with np.nan)
         remove_nan_mask = ~torch.isnan(truthlabels)
         # Apply the mask - 
@@ -473,7 +469,7 @@ class HyPERDataset(InMemoryDataset):
         """
         
         # Load the file
-        filename = osp.join(self.raw_dir, self.raw_file_names[0])
+        filename = osp.join(self.raw_directory, f"{self.file_to_load}.h5")
         print(f"Parsing {filename}")
         with h5py.File(filename,'r') as file:
 
