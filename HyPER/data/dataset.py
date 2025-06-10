@@ -19,20 +19,14 @@ from .filter import TargetConnectivityFilter
 
 class HyPERDataset(InMemoryDataset):
     
-    r"""Concstructs a graph dataset (PyG-InMemoryDataset) and saves to file
-    process method is called on initialisation
-    
-    Args:
-        root (str): dataset path.
-        name (str): input h5 filename, without ".h5 suffix".
-        transform ():
-        pre_transform(Optional[Callable): setting to transform the dataset before saving
-        pre_filter():
-        force_relaod(bool): Forces rebuilding of dataset if True, otherwise loads from saved
-        
-    Builds dataset for all graphs (events) simulataneously, leveraging torch and awkward functionalities
     """
-
+    Builds the graph dataset. Inherits from the PyTorchGeometric InMemoryDataset,
+        which comes with __init__ and process methods.
+        
+    Process is called when the data is loaded. 
+    It calls the various methods for building the nodes, edge and global parameters
+    
+    """
     def __init__(
         self,
         root: str,
@@ -43,27 +37,26 @@ class HyPERDataset(InMemoryDataset):
         force_reload: bool = False,
     ) -> None:
         
-        self.root_dir = root
-        self.filename = name # This is the name of the file to be loaded
-        self.raw_directory        = osp.join(self.root_dir, 'raw')
-        self.processed_directroy  = osp.join(self.root_dir, 'processed')
-        self.file_index     = 0
-
-        # All files in the raw directory
-        self.files_in_raw = [
+        self.root = root
+        self.name = name # This is the name of the file to be loaded
+        # self.names is a list of all names in the directory
+        
+        self.names = [
             osp.splitext(file)[0] for file in 
-            listdir(self.raw_directory)]
+            listdir(osp.join(self.root, "raw"))]
+        # Filter self.names to only include the files that match input_name
+        self.names = [name for name in self.names if name == self.name]
+        # Throw an error if no file matching name exists
+        if len(self.names) == 0:
+            raise FileNotFoundError(f"No file matching '{self.name}' found in the 'raw' directory.")
         
-        # Check that the specified file exists in the raw directory
-        if self.filename in self.files_in_raw:
-            self.file_to_load = self.filename
-        else:
-            raise ValueError(f"Error: '{self.filename}' not found in the list of available files: {self.files_in_raw}")
-        
-        if not osp.exists(osp.join(self.root_dir, "config.yaml")):
-            raise ValueError("config.yaml does not exist in the specified directory.")
+        file_index = [i for i in range(len(self.names))
+                            if self.names[i] == self.name]
+        assert len(file_index) == 1
+        self.file_index = file_index[0]
+
         # Parse database config file, setting instance attributes
-        parsed_inputs = HyPERDataset._parse_config_file(f"{self.root_dir}/config.yaml")
+        parsed_inputs = HyPERDataset._parse_config_file(f"{self.root}/config.yaml")
         
         self.node_input_names   = list(parsed_inputs['input']['nodes'].keys())
         self.input_id           = parsed_inputs['input']['nodes']
@@ -117,15 +110,25 @@ class HyPERDataset(InMemoryDataset):
 
         super().__init__(root, transform, pre_transform, pre_filter,
                          force_reload=force_reload)
-        self.load(self.processed_paths[0])
-        
+        self.load(self.processed_paths[self.file_index])
+    
+    
+    @property
+    def raw_dir(self) -> str:
+        return osp.join(self.root, 'raw')
+
+    @property
+    def processed_dir(self) -> str:
+        return osp.join(self.root, 'processed')
+
     @property
     def raw_file_names(self) -> List[str]:
-         return [f'{name}.h5' for name in self.files_in_raw]
- 
+        return [f'{name}.h5' for name in self.names]
+
     @property
     def processed_file_names(self) -> List[str]:
-         return [f'{name}.pt' for name in self.files_in_raw]
+        return [f'{name}.pt' for name in self.names]
+    
     
     @staticmethod
     def _parse_config_file(filename):
@@ -337,6 +340,7 @@ class HyPERDataset(InMemoryDataset):
         truthlabels_np = np.concatenate(truth_label_imported,axis=1)
         # Convert to torch tensor
         truthlabels = torch.tensor(truthlabels_np)
+
         # Remove padded events (padded events have to be hard-coded with np.nan)
         remove_nan_mask = ~torch.isnan(truthlabels)
         # Apply the mask - 
@@ -443,11 +447,15 @@ class HyPERDataset(InMemoryDataset):
         
         choose_2 = lambda t: t * (t - 1) // 2
         choose_3 = lambda t: t * (t - 1) * (t - 2) // 6
+        choose_4 = lambda t: t * (t - 1) * (t - 2) * (t - 3) // 24
 
         slice_x_index         = torch.cat((torch.tensor([0]),torch.cumsum(self.Nobjects, dim=0)))
         slice_u_index         = torch.arange(0,len(self.Nobjects)+1)
         slice_edge_index      = torch.cat((torch.tensor([0]),torch.cumsum(2*choose_2(self.Nobjects), dim=0)))
-        slice_hyperedge_index = torch.cat((torch.tensor([0]),torch.cumsum(choose_3(self.Nobjects), dim=0)))
+        if self.hyperedge_order == 3:
+            slice_hyperedge_index = torch.cat((torch.tensor([0]),torch.cumsum(choose_3(self.Nobjects), dim=0)))
+        elif self.hyperedge_order == 4:
+            slice_hyperedge_index = torch.cat((torch.tensor([0]),torch.cumsum(choose_4(self.Nobjects), dim=0)))
         
         return {'x'                 : slice_x_index, 
                 'edge_index'        : slice_edge_index, 
@@ -465,7 +473,7 @@ class HyPERDataset(InMemoryDataset):
         """
         
         # Load the file
-        filename = osp.join(self.raw_directory, f"{self.file_to_load}.h5")
+        filename = osp.join(self.raw_dir, self.raw_file_names[0])
         print(f"Parsing {filename}")
         with h5py.File(filename,'r') as file:
 
@@ -491,7 +499,7 @@ class HyPERDataset(InMemoryDataset):
         self.build_edge_indices()
         # Constructing hyperedge index tensor
         print("Building hyperedge indices")    
-        self.build_hyperedge_indices(hyperedge_cardinality=3)
+        self.build_hyperedge_indices(hyperedge_cardinality=self.hyperedge_order)
         # Assign unique target ids
         # Constructing edge label tensor
         print("Building edge target labels")    
