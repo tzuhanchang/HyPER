@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  - Add MacOS support (CPU only) ([#57](https://github.com/tzuhanchang/HyPER/pull/57))
 
 ### Changed
+ - Generalize hyperedge order to four ([#73](https://github.com/tzuhanchang/HyPER/pull/73))
  - Update the documentation for the new dataset structure ([#71](https://github.com/tzuhanchang/HyPER/pull/71))
  - Build `HyPER.data.dataset` in a parallelised way for faster execution ([#68](https://github.com/tzuhanchang/HyPER/pull/68))
  - Altered dataset config YAML ([#68](https://github.com/tzuhanchang/HyPER/pull/68))
